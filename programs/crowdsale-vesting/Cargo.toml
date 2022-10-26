@@ -3,6 +3,7 @@ name = "crowdsale-vesting"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2021"
+authors = ["Tengiz Sharafiev <btolfa@gmail.com>"]
 
 [lib]
 crate-type = ["cdylib", "lib"]
@@ -17,3 +18,4 @@ default = []
 
 [dependencies]
 anchor-lang = "0.25.0"
+anchor-spl = "0.25.0"
