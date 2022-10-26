@@ -62,7 +62,7 @@ pub fn initialize(
     let sale = &mut ctx.accounts.sale;
 
     sale.authority = ctx.accounts.authority.key();
-    sale.is_enabled = false;
+    sale.is_active = false;
     sale.price_numerator = price_numerator;
     sale.price_denominator = price_denominator;
     sale.payment_min_amount = payment_min_amount;

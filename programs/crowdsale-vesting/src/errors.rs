@@ -5,4 +5,6 @@ pub enum SaleError {
     ZeroPrice,
     AdvanceFractionTooHigh,
     BumpSeedNotInHashMap,
+    SaleNotActive,
+    SaleAlreadyActive,
 }

@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 #[account]
 pub struct Sale {
     pub authority: Pubkey,
-    pub is_enabled: bool,
+    pub is_active: bool,
 
     pub price_numerator: u64,
     pub price_denominator: u64,
