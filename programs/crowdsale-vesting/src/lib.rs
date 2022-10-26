@@ -3,8 +3,8 @@ pub mod instructions;
 pub mod state;
 
 use anchor_lang::prelude::*;
-use instructions::*;
 use errors::SaleError;
+use instructions::*;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -42,15 +42,18 @@ pub mod crowdsale_vesting {
     }
 
     pub fn resume(ctx: Context<WithAuthority>) -> Result<()> {
-        require!(ctx.accounts.sale.is_active == false, SaleError::SaleAlreadyActive);
+        require!(
+            ctx.accounts.sale.is_active == false,
+            SaleError::SaleAlreadyActive
+        );
         ctx.accounts.sale.is_active = true;
         Ok(())
     }
-    /*
-       pub fn fund(ctx: Context<Fund>, amount: u64) -> Result<()> {
-           todo!()
-       }
 
+    pub fn fund(ctx: Context<Fund>, amount: u64) -> Result<()> {
+        instructions::fund(ctx, amount)
+    }
+    /*
        pub fn withdraw(ctx: Context<Withdraw>, sale_token_amount: u64) -> Result<()> {
            todo!()
        }
