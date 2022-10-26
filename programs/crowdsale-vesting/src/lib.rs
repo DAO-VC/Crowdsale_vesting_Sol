@@ -53,11 +53,11 @@ pub mod crowdsale_vesting {
     pub fn fund(ctx: Context<Fund>, amount: u64) -> Result<()> {
         instructions::fund(ctx, amount)
     }
-    /*
-       pub fn withdraw(ctx: Context<Withdraw>, sale_token_amount: u64) -> Result<()> {
-           todo!()
-       }
 
+    pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
+        instructions::withdraw(ctx, amount)
+    }
+    /*
        pub fn execute_sale(ctx: Context<ExecuteSale>, payment_token_amount: u64) -> Result<()> {
            todo!()
        }
