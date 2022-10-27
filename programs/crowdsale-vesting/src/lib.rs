@@ -61,15 +61,14 @@ pub mod crowdsale_vesting {
     pub fn execute_sale(ctx: Context<ExecuteSale>, payment_token_amount: u64) -> Result<()> {
         instructions::execute_sale(ctx, payment_token_amount)
     }
-    /*
-       // vesting
-       pub fn claim(ctx: Context<Claim>) -> Result<()> {
-           todo!()
-       }
 
-       pub fn close_vesting(ctx: Context<CloseVesting>) -> Result<()> {
-           todo!()
-       }
+    // vesting
+    pub fn claim(ctx: Context<Claim>) -> Result<()> {
+        instructions::claim(ctx)
+    }
 
-    */
+   pub fn close_vesting(ctx: Context<CloseVesting>) -> Result<()> {
+       instructions::close_vesting(ctx)
+   }
+
 }

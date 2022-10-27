@@ -7,4 +7,8 @@ pub enum SaleError {
     BumpSeedNotInHashMap,
     SaleNotActive,
     SaleAlreadyActive,
+    AmountMinimum,
+    CalculationOverflow,
+    IncompatibleVesting,
+    NothingToClaim,
 }

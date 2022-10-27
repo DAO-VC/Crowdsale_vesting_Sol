@@ -33,10 +33,10 @@ pub struct VestingSchedule {
 pub struct Vesting {
     pub authority: Pubkey,
     pub mint: Pubkey,
+    pub first_sale: Pubkey,
 
     pub total_amount: u64,
     pub vesting_bump: u8,
-    pub vesting_token_bump: u8,
 
     pub schedule: Vec<VestingSchedule>,
 }
@@ -45,8 +45,8 @@ impl Vesting {
     pub fn space(release_schedule: &Vec<u64>) -> usize {
         8 + 32
             + 32
+            + 32
             + 8
-            + 1
             + 1
             + 4
             + release_schedule.len() * std::mem::size_of::<VestingSchedule>()
