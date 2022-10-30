@@ -20,6 +20,7 @@ pub struct Claim<'info> {
     pub vesting: Account<'info, Vesting>,
 
     #[account(
+        mut,
         associated_token::mint = mint,
         associated_token::authority = vesting,
     )]

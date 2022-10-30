@@ -13,13 +13,14 @@ pub struct Sale {
     pub release_schedule: Vec<u64>,
 
     pub signer_bump: u8,
+    pub sale_token: Pubkey,
     pub sale_token_bump: u8,
     pub payment: Pubkey,
 }
 
 impl Sale {
     pub fn space(release_schedule: &Vec<u64>) -> usize {
-        8 + 32 + 1 + 8 + 8 + 8 + 2 + 4 + release_schedule.len() * 8 + 1 + 1 + 32
+        8 + 32 + 1 + 8 + 8 + 8 + 2 + 4 + release_schedule.len() * 8 + 1 + 32 + 1 + 32
     }
 }
 

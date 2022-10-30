@@ -58,7 +58,7 @@ pub struct ExecuteSale<'info> {
         payer = user,
         seeds = [
             user.key().as_ref(),
-            sale_token.mint.as_ref(),
+            sale_mint.key().as_ref(),
         ],
         bump
     )]

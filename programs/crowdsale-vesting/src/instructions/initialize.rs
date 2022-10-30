@@ -75,6 +75,7 @@ pub fn initialize(
         .get("signer")
         .ok_or_else(|| error!(SaleError::BumpSeedNotInHashMap))?;
 
+    sale.sale_token = ctx.accounts.sale_token.key();
     sale.sale_token_bump = *ctx
         .bumps
         .get("sale_token")
