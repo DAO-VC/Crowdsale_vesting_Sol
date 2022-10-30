@@ -1,27 +1,23 @@
 use crate::errors::SaleError;
 use crate::state::{Sale, Vesting, VestingSchedule};
 use anchor_lang::prelude::*;
+use anchor_lang::system_program;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token;
 use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
 
 #[derive(Accounts)]
+#[instruction(payment_amount: u64)]
 pub struct ExecuteSale<'info> {
     #[account(
-        has_one = payment_token,
-        constraint = sale.is_active == true
+        has_one = payment,
+        constraint = sale.is_active == true,
+        constraint = payment_amount >= sale.payment_min_amount @ SaleError::AmountMinimum,
     )]
     pub sale: Box<Account<'info, Sale>>,
 
     #[account(mut)]
     pub user: Signer<'info>,
-
-    #[account(
-        mut,
-        associated_token::mint = payment_token.mint,
-        associated_token::authority = user,
-    )]
-    pub user_payment_token: Box<Account<'info, TokenAccount>>,
 
     #[account(
         init_if_needed,
@@ -53,7 +49,8 @@ pub struct ExecuteSale<'info> {
     pub sale_token: Box<Account<'info, TokenAccount>>,
 
     #[account(mut)]
-    pub payment_token: Box<Account<'info, TokenAccount>>,
+    /// CHECK: Will receive payments
+    pub payment: UncheckedAccount<'info>,
 
     #[account(
         init_if_needed,
@@ -83,24 +80,18 @@ pub struct ExecuteSale<'info> {
 
 pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()> {
     let sale = &ctx.accounts.sale;
-    require_gte!(
-        payment_amount,
-        ctx.accounts.sale.payment_min_amount,
-        SaleError::AmountMinimum
-    );
 
     let token_purchase_amount =
         payment_amount as u128 * sale.price_numerator as u128 / sale.price_denominator as u128;
     let token_purchase_amount =
         u64::try_from(token_purchase_amount).map_err(|_| error!(SaleError::CalculationOverflow))?;
 
-    token::transfer(
+    system_program::transfer(
         CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.user_payment_token.to_account_info(),
-                to: ctx.accounts.payment_token.to_account_info(),
-                authority: ctx.accounts.user.to_account_info(),
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from: ctx.accounts.user.to_account_info(),
+                to: ctx.accounts.payment.to_account_info(),
             },
         ),
         payment_amount,
@@ -160,7 +151,6 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
                 amount: remaining_portion_amount,
             })
             .collect();
-        vesting.total_amount += remaining_total_amount;
     } else {
         // Top Up
         require_keys_eq!(
@@ -198,6 +188,7 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
             })
             .collect();
     }
+    ctx.accounts.vesting.total_amount += remaining_total_amount;
 
     token::transfer(
         CpiContext::new_with_signer(

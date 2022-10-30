@@ -37,7 +37,8 @@ pub struct Initialize<'info> {
     )]
     pub sale_token: Box<Account<'info, TokenAccount>>,
 
-    pub payment_token: Box<Account<'info, TokenAccount>>,
+    /// CHECK: Will receive payment SOL
+    pub payment: UncheckedAccount<'info>,
 
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -79,7 +80,7 @@ pub fn initialize(
         .get("sale_token")
         .ok_or_else(|| error!(SaleError::BumpSeedNotInHashMap))?;
 
-    sale.payment_token = ctx.accounts.payment_token.key();
+    sale.payment = ctx.accounts.payment.key();
 
     Ok(())
 }

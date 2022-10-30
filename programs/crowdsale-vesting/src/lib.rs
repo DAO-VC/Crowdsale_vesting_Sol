@@ -58,8 +58,8 @@ pub mod crowdsale_vesting {
         instructions::withdraw(ctx, amount)
     }
 
-    pub fn execute_sale(ctx: Context<ExecuteSale>, payment_token_amount: u64) -> Result<()> {
-        instructions::execute_sale(ctx, payment_token_amount)
+    pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()> {
+        instructions::execute_sale(ctx, payment_amount)
     }
 
     // vesting
@@ -67,8 +67,7 @@ pub mod crowdsale_vesting {
         instructions::claim(ctx)
     }
 
-   pub fn close_vesting(ctx: Context<CloseVesting>) -> Result<()> {
-       instructions::close_vesting(ctx)
-   }
-
+    pub fn close_vesting(ctx: Context<CloseVesting>) -> Result<()> {
+        instructions::close_vesting(ctx)
+    }
 }

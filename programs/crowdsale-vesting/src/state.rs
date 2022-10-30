@@ -14,7 +14,7 @@ pub struct Sale {
 
     pub signer_bump: u8,
     pub sale_token_bump: u8,
-    pub payment_token: Pubkey,
+    pub payment: Pubkey,
 }
 
 impl Sale {

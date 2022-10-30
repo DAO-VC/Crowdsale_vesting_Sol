@@ -1,7 +1,7 @@
+use crate::state::Vesting;
 use anchor_lang::prelude::*;
 use anchor_spl::token;
 use anchor_spl::token::{CloseAccount, Mint, Token, TokenAccount};
-use crate::state::Vesting;
 
 #[derive(Accounts)]
 pub struct CloseVesting<'info> {
@@ -42,12 +42,15 @@ pub fn close_vesting(ctx: Context<CloseVesting>) -> Result<()> {
         &[ctx.accounts.vesting.vesting_bump],
     ];
 
-    token::close_account(CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(),
-CloseAccount {
-        account: ctx.accounts.vesting_token.to_account_info(),
-        destination: ctx.accounts.authority.to_account_info(),
-        authority: ctx.accounts.vesting.to_account_info(),
-    }, &[&seeds]))?;
+    token::close_account(CpiContext::new_with_signer(
+        ctx.accounts.token_program.to_account_info(),
+        CloseAccount {
+            account: ctx.accounts.vesting_token.to_account_info(),
+            destination: ctx.accounts.authority.to_account_info(),
+            authority: ctx.accounts.vesting.to_account_info(),
+        },
+        &[&seeds],
+    ))?;
 
     Ok(())
 }
