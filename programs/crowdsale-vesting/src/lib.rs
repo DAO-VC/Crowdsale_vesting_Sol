@@ -6,7 +6,7 @@ use anchor_lang::prelude::*;
 use errors::SaleError;
 use instructions::*;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("DWpR44f2YDsQR1MZeucD1wrs1Toe4TbWJrZeM2PMSapm");
 
 #[program]
 pub mod crowdsale_vesting {

@@ -50,3 +50,34 @@ $ anchor build
 ```shell
 $ anchor test
 ```
+
+## Devnet
+
+### Deploy
+```shell
+$ anchor deploy --provider.cluster devnet
+DWpR44f2YDsQR1MZeucD1wrs1Toe4TbWJrZeM2PMSapm
+```
+
+Create devnet tokens
+
+mint authority `G9tfQHxYT8sEUoQN1S6pxuFVTLnkMZ4F1LZ77PLPZ94Q`
+```shell
+$ spl-token create-token --decimals 9 --mint-authority G9tfQHxYT8sEUoQN1S6pxuFVTLnkMZ4F1LZ77PLPZ94Q --url devnet
+CeTriJZCuijyTW2oM9pZEudT4eykCFL6n2MzqhYrUaX
+```
+
+Init contract on devnet
+```shell
+$ anchor run init --provider.cluster devnet
+Init transaction 4AaZdNtaWsWrRHbGdeDJB9UCQn9WM4WWc6nPPfh8kejJuwNosuNT4NLvqRMW7ZZNhdPGLNY7xMFKpL1cCk4kTy6Y
+Sale account: EeoARNjz8hFgXea68LVUPuYW61vNgXCtb7VaEsGMfbG
+Fund sale tokens to AKPApdkUr4FXUgaNvgcMJrjq4b11atQFT3KRzbuuH3ve
+Done in 8.88s.
+```
+
+```
+program_id = DWpR44f2YDsQR1MZeucD1wrs1Toe4TbWJrZeM2PMSapm
+sale = EeoARNjz8hFgXea68LVUPuYW61vNgXCtb7VaEsGMfbG
+sale_mint = CeTriJZCuijyTW2oM9pZEudT4eykCFL6n2MzqhYrUaX
+```
