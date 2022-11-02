@@ -11,4 +11,5 @@ pub enum SaleError {
     CalculationOverflow,
     IncompatibleVesting,
     NothingToClaim,
+    VestingNotRequired,
 }

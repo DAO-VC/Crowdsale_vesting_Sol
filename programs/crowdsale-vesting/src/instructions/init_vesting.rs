@@ -8,6 +8,7 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 pub struct InitVesting<'info> {
     #[account(
         has_one = sale_mint,
+        constraint = sale.release_schedule.len() > 0 @ SaleError::VestingNotRequired,
     )]
     pub sale: Box<Account<'info, Sale>>,
 
