@@ -59,19 +59,22 @@ pub struct ExecuteSale<'info> {
             user.key().as_ref(),
             sale_mint.key().as_ref(),
         ],
-        bump = vesting.vesting_bump,
-        has_one = user @ SaleError::IncompatibleVesting,
-        has_one = sale_mint @ SaleError::IncompatibleVesting,
-        constraint = vesting.schedule.len() == sale.release_schedule.len() @ SaleError::IncompatibleVesting,
+        bump,
     )]
-    pub vesting: Box<Account<'info, Vesting>>,
+    /// CHECK: Can be uninitialized, will be checked in the handler
+    pub vesting: UncheckedAccount<'info>,
 
     #[account(
         mut,
-        associated_token::mint = sale_mint,
-        associated_token::authority = vesting,
+        seeds = [
+            user.key().as_ref(),
+            token_program.key().as_ref(),
+            sale_mint.key().as_ref(),
+        ], bump,
+        seeds::program = associated_token_program.key(),
     )]
-    pub vesting_token: Box<Account<'info, TokenAccount>>,
+    /// CHECK: Can be uninitialized, will be checked in the handler
+    pub vesting_token: UncheckedAccount<'info>,
 
     pub rent: Sysvar<'info, Rent>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -82,22 +85,12 @@ pub struct ExecuteSale<'info> {
 pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()> {
     let sale = &ctx.accounts.sale;
 
-    require!(
-        ctx.accounts
-            .vesting
-            .schedule
-            .iter()
-            .map(|line| &line.release_time)
-            .zip(sale.release_schedule.iter().map(|line| &line.release_time))
-            .all(|(v, s)| v == s),
-        SaleError::IncompatibleVesting
-    );
-
     let token_purchase_amount =
         payment_amount as u128 * sale.price_numerator as u128 / sale.price_denominator as u128;
     let token_purchase_amount =
         u64::try_from(token_purchase_amount).map_err(|_| error!(SaleError::CalculationOverflow))?;
 
+    // Transfer SOL for tokens to payment address
     system_program::transfer(
         CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
@@ -109,6 +102,7 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
         payment_amount,
     )?;
 
+    // Calculate advance amount and vesting amounts
     let vesting_amounts: Vec<u64> = sale
         .release_schedule
         .iter()
@@ -126,45 +120,99 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
     let key = ctx.accounts.sale.key();
     let seeds = [key.as_ref(), &[ctx.accounts.sale.signer_bump]];
 
-    // Advance payment
-    token::transfer(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.sale_token.to_account_info(),
-                to: ctx.accounts.user_sale_token.to_account_info(),
-                authority: ctx.accounts.signer.to_account_info(),
-            },
-            &[&seeds],
-        ),
-        advance_amount,
-    )?;
+    // Transfer advance amount to user
+    if advance_amount > 0 {
+        token::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.sale_token.to_account_info(),
+                    to: ctx.accounts.user_sale_token.to_account_info(),
+                    authority: ctx.accounts.signer.to_account_info(),
+                },
+                &[&seeds],
+            ),
+            advance_amount,
+        )?;
+    }
 
-    // Update vesting
-    let vesting = &mut ctx.accounts.vesting;
-    vesting.schedule = vesting
-        .schedule
-        .iter()
-        .zip(vesting_amounts.iter())
-        .map(|(line, additional)| VestingSchedule {
-            release_time: line.release_time,
-            amount: line.amount + additional,
-        })
-        .collect();
-    vesting.total_amount += remaining_total_amount;
+    if remaining_total_amount > 0 {
+        let mut vesting: Account<Vesting> = Account::try_from(&ctx.accounts.vesting)?;
 
-    token::transfer(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.sale_token.to_account_info(),
-                to: ctx.accounts.vesting_token.to_account_info(),
-                authority: ctx.accounts.signer.to_account_info(),
-            },
-            &[&seeds],
-        ),
-        remaining_total_amount,
-    )?;
+        require_keys_eq!(
+            vesting.user,
+            ctx.accounts.user.key(),
+            SaleError::IncompatibleVesting
+        );
+        require_keys_eq!(
+            vesting.sale_mint,
+            ctx.accounts.sale_mint.key(),
+            SaleError::IncompatibleVesting
+        );
+        require_eq!(
+            vesting.schedule.len(),
+            sale.release_schedule.len(),
+            SaleError::IncompatibleVesting
+        );
+        let actual_vesting_bump = *ctx
+            .bumps
+            .get("vesting")
+            .ok_or_else(|| error!(SaleError::BumpSeedNotInHashMap))?;
+        require_eq!(
+            vesting.vesting_bump,
+            actual_vesting_bump,
+            SaleError::IncompatibleVesting
+        );
+        require!(
+            vesting
+                .schedule
+                .iter()
+                .map(|line| &line.release_time)
+                .zip(sale.release_schedule.iter().map(|line| &line.release_time))
+                .all(|(v, s)| v == s),
+            SaleError::IncompatibleVesting
+        );
+
+        let vesting_token: Account<TokenAccount> = Account::try_from(&ctx.accounts.vesting_token)?;
+        require_keys_eq!(
+            vesting_token.mint,
+            ctx.accounts.sale_mint.key(),
+            SaleError::IncompatibleVesting
+        );
+        require_keys_eq!(
+            vesting_token.owner,
+            ctx.accounts.user.key(),
+            SaleError::IncompatibleVesting
+        );
+
+        // Update vesting account
+        vesting.schedule = vesting
+            .schedule
+            .iter()
+            .zip(vesting_amounts.iter())
+            .map(|(line, extra)| VestingSchedule {
+                release_time: line.release_time,
+                amount: line.amount + extra,
+            })
+            .collect();
+        vesting.total_amount += remaining_total_amount;
+
+        // Transfer remaining tokens to vesting token account
+        token::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.sale_token.to_account_info(),
+                    to: ctx.accounts.vesting_token.to_account_info(),
+                    authority: ctx.accounts.signer.to_account_info(),
+                },
+                &[&seeds],
+            ),
+            remaining_total_amount,
+        )?;
+
+        vesting.exit(ctx.program_id)?;
+    }
 
     Ok(())
 }
