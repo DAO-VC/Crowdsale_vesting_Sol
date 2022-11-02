@@ -5,6 +5,7 @@ pub mod state;
 use anchor_lang::prelude::*;
 use errors::SaleError;
 use instructions::*;
+use state::ReleaseSchedule;
 
 declare_id!("DWpR44f2YDsQR1MZeucD1wrs1Toe4TbWJrZeM2PMSapm");
 
@@ -18,7 +19,7 @@ pub mod crowdsale_vesting {
         price_denominator: u64,
         payment_min_amount: u64,
         advance_fraction: u16,
-        release_schedule: Vec<u64>,
+        release_schedule: Vec<ReleaseSchedule>,
     ) -> Result<()> {
         instructions::initialize(
             ctx,

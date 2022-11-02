@@ -1,8 +1,8 @@
-use crate::state::{Sale, Vesting, VestingSchedule};
+use crate::errors::SaleError;
+use crate::state::{ReleaseSchedule, Sale, Vesting, VestingSchedule};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{Mint, Token, TokenAccount};
-use crate::errors::SaleError;
 
 #[derive(Accounts)]
 pub struct InitVesting<'info> {
@@ -52,10 +52,12 @@ pub fn init_vesting(ctx: Context<InitVesting>) -> Result<()> {
         .get("vesting")
         .ok_or_else(|| error!(SaleError::BumpSeedNotInHashMap))?;
     vesting.total_amount = 0;
-    vesting.schedule = ctx.accounts.sale
+    vesting.schedule = ctx
+        .accounts
+        .sale
         .release_schedule
         .iter()
-        .map(|&release_time| VestingSchedule {
+        .map(|&ReleaseSchedule { release_time, .. }| VestingSchedule {
             release_time,
             amount: 0,
         })

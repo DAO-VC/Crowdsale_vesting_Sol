@@ -88,7 +88,7 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
             .schedule
             .iter()
             .map(|line| &line.release_time)
-            .zip(sale.release_schedule.iter())
+            .zip(sale.release_schedule.iter().map(|line| &line.release_time))
             .all(|(v, s)| v == s),
         SaleError::IncompatibleVesting
     );
@@ -109,19 +109,18 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
         payment_amount,
     )?;
 
-    let number_of_vesting_schedules = sale.release_schedule.len() as u64;
-    let advance_amount =
-        (token_purchase_amount as u128 * sale.advance_fraction as u128 / 10000) as u64;
-    let remaining_portion_amount =
-        (token_purchase_amount - advance_amount) / number_of_vesting_schedules;
-    let remaining_total_amount = remaining_portion_amount * number_of_vesting_schedules;
+    let vesting_amounts: Vec<u64> = sale
+        .release_schedule
+        .iter()
+        .map(|line| (token_purchase_amount as u128 * line.fraction as u128 / 10000) as u64)
+        .collect();
+    let remaining_total_amount = vesting_amounts.iter().sum::<u64>();
     let advance_amount = token_purchase_amount - remaining_total_amount;
 
     msg!(
-        "Advance payment: {}, remaining {} x {}",
+        "Advance payment: {}, remaining {}",
         advance_amount,
-        number_of_vesting_schedules,
-        remaining_portion_amount
+        remaining_total_amount,
     );
 
     let key = ctx.accounts.sale.key();
@@ -146,9 +145,10 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
     vesting.schedule = vesting
         .schedule
         .iter()
-        .map(|line| VestingSchedule {
+        .zip(vesting_amounts.iter())
+        .map(|(line, additional)| VestingSchedule {
             release_time: line.release_time,
-            amount: line.amount + remaining_portion_amount,
+            amount: line.amount + additional,
         })
         .collect();
     vesting.total_amount += remaining_total_amount;

@@ -1,10 +1,10 @@
 use crate::errors::SaleError;
-use crate::state::Sale;
+use crate::state::{ReleaseSchedule, Sale};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(Accounts)]
-#[instruction(price_numerator: u64, price_denominator: u64, payment_min_amount: u64, advance_fraction: u16, release_schedule: Vec<u64>)]
+#[instruction(price_numerator: u64, price_denominator: u64, payment_min_amount: u64, advance_fraction: u16, release_schedule: Vec<ReleaseSchedule>)]
 pub struct Initialize<'info> {
     #[account(
         init,
@@ -54,11 +54,14 @@ pub fn initialize(
     price_denominator: u64,
     payment_min_amount: u64,
     advance_fraction: u16,
-    release_schedule: Vec<u64>,
+    release_schedule: Vec<ReleaseSchedule>,
 ) -> Result<()> {
     require_neq!(price_numerator, 0, SaleError::ZeroPrice);
     require_neq!(price_denominator, 0, SaleError::ZeroPrice);
-    require_gt!(10000, advance_fraction, SaleError::AdvanceFractionTooHigh);
+    require!(
+        check_release_schedule(advance_fraction, &release_schedule),
+        SaleError::FractionsAreNot100Percents
+    );
 
     let sale = &mut ctx.accounts.sale;
 
@@ -85,4 +88,14 @@ pub fn initialize(
     sale.sale_mint = ctx.accounts.sale_mint.key();
 
     Ok(())
+}
+
+// Check if advance fraction + sum of release schedule fraction is 100% (10000)
+fn check_release_schedule(advance_fraction: u16, release_schedule: &Vec<ReleaseSchedule>) -> bool {
+    release_schedule
+        .iter()
+        .map(|ReleaseSchedule { fraction, .. }| *fraction as u64)
+        .sum::<u64>()
+        + advance_fraction as u64
+        == 10000
 }

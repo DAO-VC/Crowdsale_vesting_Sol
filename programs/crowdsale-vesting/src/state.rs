@@ -10,7 +10,7 @@ pub struct Sale {
     pub payment_min_amount: u64,
 
     pub advance_fraction: u16,
-    pub release_schedule: Vec<u64>,
+    pub release_schedule: Vec<ReleaseSchedule>,
 
     pub sale_mint: Pubkey,
     pub sale_token: Pubkey,
@@ -21,9 +21,27 @@ pub struct Sale {
 }
 
 impl Sale {
-    pub fn space(release_schedule: &Vec<u64>) -> usize {
-        8 + 32 + 1 + 8 + 8 + 8 + 2 + 4 + release_schedule.len() * 8 + 1 + 32 + 32 + 1 + 32
+    pub fn space(release_schedule: &Vec<ReleaseSchedule>) -> usize {
+        8 + 32
+            + 1
+            + 8
+            + 8
+            + 8
+            + 2
+            + 4
+            + release_schedule.len() * std::mem::size_of::<ReleaseSchedule>()
+            + 32
+            + 32
+            + 32
+            + 1
+            + 1
     }
+}
+
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct ReleaseSchedule {
+    pub release_time: u64,
+    pub fraction: u16, // Base points - 100% = 10000
 }
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
@@ -45,7 +63,7 @@ pub struct Vesting {
 }
 
 impl Vesting {
-    pub fn space(release_schedule: &Vec<u64>) -> usize {
+    pub fn space(release_schedule: &Vec<ReleaseSchedule>) -> usize {
         8 + 32
             + 32
             + 32
