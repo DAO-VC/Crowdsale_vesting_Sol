@@ -3,7 +3,7 @@ seeds = true
 skip-lint = false
 
 [programs.localnet]
-crowdsale_vesting = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+crowdsale_vesting = "DWpR44f2YDsQR1MZeucD1wrs1Toe4TbWJrZeM2PMSapm"
 
 [programs.devnet]
 crowdsale_vesting = "DWpR44f2YDsQR1MZeucD1wrs1Toe4TbWJrZeM2PMSapm"
