@@ -82,6 +82,7 @@ pub fn initialize(
         .ok_or_else(|| error!(SaleError::BumpSeedNotInHashMap))?;
 
     sale.payment = ctx.accounts.payment.key();
+    sale.sale_mint = ctx.accounts.sale_mint.key();
 
     Ok(())
 }

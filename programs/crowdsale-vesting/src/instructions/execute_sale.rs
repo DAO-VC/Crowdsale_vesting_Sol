@@ -11,6 +11,7 @@ use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
 pub struct ExecuteSale<'info> {
     #[account(
         has_one = payment,
+        has_one = sale_mint,
         constraint = sale.is_active == true,
         constraint = payment_amount >= sale.payment_min_amount @ SaleError::AmountMinimum,
     )]
@@ -53,20 +54,20 @@ pub struct ExecuteSale<'info> {
     pub payment: UncheckedAccount<'info>,
 
     #[account(
-        init_if_needed,
-        space = Vesting::space(&sale.release_schedule),
-        payer = user,
+        mut,
         seeds = [
             user.key().as_ref(),
             sale_mint.key().as_ref(),
         ],
-        bump
+        bump = vesting.vesting_bump,
+        has_one = user @ SaleError::IncompatibleVesting,
+        has_one = sale_mint @ SaleError::IncompatibleVesting,
+        constraint = vesting.schedule.len() == sale.release_schedule.len() @ SaleError::IncompatibleVesting,
     )]
     pub vesting: Box<Account<'info, Vesting>>,
 
     #[account(
-        init_if_needed,
-        payer = user,
+        mut,
         associated_token::mint = sale_mint,
         associated_token::authority = vesting,
     )]
@@ -80,6 +81,17 @@ pub struct ExecuteSale<'info> {
 
 pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()> {
     let sale = &ctx.accounts.sale;
+
+    require!(
+        ctx.accounts
+            .vesting
+            .schedule
+            .iter()
+            .map(|line| &line.release_time)
+            .zip(sale.release_schedule.iter())
+            .all(|(v, s)| v == s),
+        SaleError::IncompatibleVesting
+    );
 
     let token_purchase_amount =
         payment_amount as u128 * sale.price_numerator as u128 / sale.price_denominator as u128;
@@ -129,66 +141,17 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
         advance_amount,
     )?;
 
-    let vesting = &ctx.accounts.vesting;
-    if vesting.total_amount == 0 {
-        // New vesting
-        let vesting = &mut ctx.accounts.vesting;
-
-        vesting.authority = ctx.accounts.user.key();
-        vesting.mint = ctx.accounts.sale_mint.key();
-        vesting.first_sale = ctx.accounts.sale.key();
-        vesting.total_amount = remaining_total_amount;
-        vesting.vesting_bump = *ctx
-            .bumps
-            .get("vesting")
-            .ok_or_else(|| error!(SaleError::BumpSeedNotInHashMap))?;
-
-        vesting.schedule = sale
-            .release_schedule
-            .iter()
-            .map(|&release_time| VestingSchedule {
-                release_time,
-                amount: remaining_portion_amount,
-            })
-            .collect();
-    } else {
-        // Top Up
-        require_keys_eq!(
-            vesting.authority,
-            ctx.accounts.user.key(),
-            SaleError::IncompatibleVesting
-        );
-        require_keys_eq!(
-            vesting.mint,
-            ctx.accounts.sale_mint.key(),
-            SaleError::IncompatibleVesting
-        );
-        require_eq!(
-            vesting.schedule.len(),
-            sale.release_schedule.len(),
-            SaleError::IncompatibleVesting
-        );
-        require!(
-            vesting
-                .schedule
-                .iter()
-                .map(|line| &line.release_time)
-                .zip(sale.release_schedule.iter())
-                .all(|(v, s)| v == s),
-            SaleError::IncompatibleVesting
-        );
-
-        let vesting = &mut ctx.accounts.vesting;
-        vesting.schedule = vesting
-            .schedule
-            .iter()
-            .map(|line| VestingSchedule {
-                release_time: line.release_time,
-                amount: line.amount + remaining_portion_amount,
-            })
-            .collect();
-    }
-    ctx.accounts.vesting.total_amount += remaining_total_amount;
+    // Update vesting
+    let vesting = &mut ctx.accounts.vesting;
+    vesting.schedule = vesting
+        .schedule
+        .iter()
+        .map(|line| VestingSchedule {
+            release_time: line.release_time,
+            amount: line.amount + remaining_portion_amount,
+        })
+        .collect();
+    vesting.total_amount += remaining_total_amount;
 
     token::transfer(
         CpiContext::new_with_signer(

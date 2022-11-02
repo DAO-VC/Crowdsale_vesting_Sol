@@ -10,31 +10,31 @@ pub struct Claim<'info> {
     #[account(
         mut,
         seeds = [
-            authority.key().as_ref(),
-            mint.key().as_ref(),
+            user.key().as_ref(),
+            sale_mint   .key().as_ref(),
         ],
         bump = vesting.vesting_bump,
-        has_one = authority,
-        has_one = mint,
+        has_one = user,
+        has_one = sale_mint,
     )]
     pub vesting: Account<'info, Vesting>,
 
     #[account(
         mut,
-        associated_token::mint = mint,
+        associated_token::mint = sale_mint,
         associated_token::authority = vesting,
     )]
     pub vesting_token: Account<'info, TokenAccount>,
-    pub mint: Account<'info, Mint>,
+    pub sale_mint: Account<'info, Mint>,
 
     #[account(mut)]
-    pub authority: Signer<'info>,
+    pub user: Signer<'info>,
 
     #[account(
         init_if_needed,
-        payer = authority,
-        associated_token::mint = mint,
-        associated_token::authority = authority,
+        payer = user,
+        associated_token::mint = sale_mint,
+        associated_token::authority = user,
     )]
     pub user_token: Account<'info, TokenAccount>,
 
@@ -80,11 +80,11 @@ pub fn claim(ctx: Context<Claim>) -> Result<()> {
         })
         .collect();
 
-    let authority_key = ctx.accounts.authority.key();
-    let mint_key = ctx.accounts.mint.key();
+    let user_key = ctx.accounts.user.key();
+    let sale_mint_key = ctx.accounts.sale_mint.key();
     let seeds = [
-        authority_key.as_ref(),
-        mint_key.as_ref(),
+        user_key.as_ref(),
+        sale_mint_key.as_ref(),
         &[ctx.accounts.vesting.vesting_bump],
     ];
 

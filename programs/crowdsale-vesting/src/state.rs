@@ -12,15 +12,17 @@ pub struct Sale {
     pub advance_fraction: u16,
     pub release_schedule: Vec<u64>,
 
-    pub signer_bump: u8,
+    pub sale_mint: Pubkey,
     pub sale_token: Pubkey,
-    pub sale_token_bump: u8,
     pub payment: Pubkey,
+
+    pub signer_bump: u8,
+    pub sale_token_bump: u8,
 }
 
 impl Sale {
     pub fn space(release_schedule: &Vec<u64>) -> usize {
-        8 + 32 + 1 + 8 + 8 + 8 + 2 + 4 + release_schedule.len() * 8 + 1 + 32 + 1 + 32
+        8 + 32 + 1 + 8 + 8 + 8 + 2 + 4 + release_schedule.len() * 8 + 1 + 32 + 32 + 1 + 32
     }
 }
 
@@ -32,8 +34,8 @@ pub struct VestingSchedule {
 
 #[account]
 pub struct Vesting {
-    pub authority: Pubkey,
-    pub mint: Pubkey,
+    pub user: Pubkey,
+    pub sale_mint: Pubkey,
     pub first_sale: Pubkey,
 
     pub total_amount: u64,

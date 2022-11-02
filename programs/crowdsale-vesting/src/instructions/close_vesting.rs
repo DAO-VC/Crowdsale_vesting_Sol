@@ -7,38 +7,38 @@ use anchor_spl::token::{CloseAccount, Mint, Token, TokenAccount};
 pub struct CloseVesting<'info> {
     #[account(
         mut,
-        close = authority,
+        close = user,
         seeds = [
-            authority.key().as_ref(),
-            mint.key().as_ref(),
+            user.key().as_ref(),
+            sale_mint.key().as_ref(),
         ],
         bump = vesting.vesting_bump,
-        has_one = authority,
-        has_one = mint,
+        has_one = user,
+        has_one = sale_mint,
     )]
     pub vesting: Account<'info, Vesting>,
 
     #[account(
         mut,
-        associated_token::mint = mint,
+        associated_token::mint = sale_mint,
         associated_token::authority = vesting,
         constraint = vesting_token.amount == 0,
     )]
     pub vesting_token: Account<'info, TokenAccount>,
-    pub mint: Account<'info, Mint>,
+    pub sale_mint: Account<'info, Mint>,
 
     #[account(mut)]
-    pub authority: Signer<'info>,
+    pub user: Signer<'info>,
 
     pub token_program: Program<'info, Token>,
 }
 
 pub fn close_vesting(ctx: Context<CloseVesting>) -> Result<()> {
-    let authority_key = ctx.accounts.authority.key();
-    let mint_key = ctx.accounts.mint.key();
+    let user_key = ctx.accounts.user.key();
+    let sale_mint_key = ctx.accounts.sale_mint.key();
     let seeds = [
-        authority_key.as_ref(),
-        mint_key.as_ref(),
+        user_key.as_ref(),
+        sale_mint_key.as_ref(),
         &[ctx.accounts.vesting.vesting_bump],
     ];
 
@@ -46,7 +46,7 @@ pub fn close_vesting(ctx: Context<CloseVesting>) -> Result<()> {
         ctx.accounts.token_program.to_account_info(),
         CloseAccount {
             account: ctx.accounts.vesting_token.to_account_info(),
-            destination: ctx.accounts.authority.to_account_info(),
+            destination: ctx.accounts.user.to_account_info(),
             authority: ctx.accounts.vesting.to_account_info(),
         },
         &[&seeds],

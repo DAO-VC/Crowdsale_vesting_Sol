@@ -62,12 +62,18 @@ pub mod crowdsale_vesting {
         instructions::execute_sale(ctx, payment_amount)
     }
 
+    pub fn init_vesting(ctx: Context<InitVesting>) -> Result<()> {
+        instructions::init_vesting(ctx)
+    }
+
     // vesting
     pub fn claim(ctx: Context<Claim>) -> Result<()> {
         instructions::claim(ctx)
     }
 
+    /*
     pub fn close_vesting(ctx: Context<CloseVesting>) -> Result<()> {
         instructions::close_vesting(ctx)
     }
+     */
 }
