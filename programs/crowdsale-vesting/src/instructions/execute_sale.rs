@@ -103,7 +103,7 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
             ),
             payment_amount,
         )?; 
-    } else if sale.authority == ctx.accounts.user.key()  {
+    } else if sale.price_numerator == 0 && sale.authority == ctx.accounts.user.key()  {
         token_purchase_amount = payment_amount ;
    } else {
         SaleError::NotAuthorityVests;
