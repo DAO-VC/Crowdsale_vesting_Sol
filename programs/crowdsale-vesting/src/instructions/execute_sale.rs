@@ -84,7 +84,7 @@ pub struct ExecuteSale<'info> {
 
 pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()> {
     let sale = &ctx.accounts.sale;
-    let mut  token_purchase_amount: u64;
+    let mut  token_purchase_amount: u64 =0;
     if sale.price_numerator >0 { //sale.price_numerator == 0 means not sale just vesting
         token_purchase_amount =
         payment_amount  * sale.price_numerator  / sale.price_denominator ;
@@ -103,9 +103,11 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
             ),
             payment_amount,
         )?; 
-    } else   {
+    } else if sale.authority == ctx.accounts.user.key()  {
         token_purchase_amount = payment_amount ;
-   } 
+   } else {
+        SaleError::NotAuthorityVests;
+   }
     // Calculate advance amount and vesting amounts
     let vesting_amounts: Vec<u64> = sale
         .release_schedule

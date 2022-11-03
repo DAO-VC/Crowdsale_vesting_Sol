@@ -12,4 +12,5 @@ pub enum SaleError {
     IncompatibleVesting,
     NothingToClaim,
     VestingNotRequired,
+    NotAuthorityVests
 }
