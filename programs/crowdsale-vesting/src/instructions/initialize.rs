@@ -56,7 +56,7 @@ pub fn initialize(
     advance_fraction: u16,
     release_schedule: Vec<ReleaseSchedule>,
 ) -> Result<()> {
-    require_neq!(price_numerator, 0, SaleError::ZeroPrice);
+//    require_neq!(price_numerator, 0, SaleError::ZeroPrice);
     require_neq!(price_denominator, 0, SaleError::ZeroPrice);
     require!(
         check_release_schedule(advance_fraction, &release_schedule),
