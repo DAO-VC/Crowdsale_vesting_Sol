@@ -54,9 +54,10 @@ pub fn initialize(
     price_denominator: u64,
     payment_min_amount: u64,
     advance_fraction: u16,
+    no_sale_just_vesting:  bool,
     release_schedule: Vec<ReleaseSchedule>,
 ) -> Result<()> {
-//    require_neq!(price_numerator, 0, SaleError::ZeroPrice);
+    require_neq!(price_numerator, 0, SaleError::ZeroPrice);
     require_neq!(price_denominator, 0, SaleError::ZeroPrice);
     require!(
         check_release_schedule(advance_fraction, &release_schedule),
@@ -71,6 +72,7 @@ pub fn initialize(
     sale.price_denominator = price_denominator;
     sale.payment_min_amount = payment_min_amount;
     sale.advance_fraction = advance_fraction;
+    sale.no_sale_just_vesting = no_sale_just_vesting;
     sale.release_schedule = release_schedule;
 
     sale.signer_bump = *ctx

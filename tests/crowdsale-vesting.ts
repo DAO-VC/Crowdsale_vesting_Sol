@@ -24,7 +24,6 @@ describe("crowdsale-vesting", () => {
   const authority = Keypair.generate();
   const saleMint = Keypair.generate();
   const payment = Keypair.generate();
-
   before(async () => {
     await creatMintIfRequired(splProgram, saleMint, wallet);
     await mintToATA(splProgram, wallet, new BN(1_000_000_000), saleMint.publicKey, wallet);
@@ -36,10 +35,11 @@ describe("crowdsale-vesting", () => {
     // received_tokens_amount = lamports * price_numerator / price_denominator
     // 1 * 10^9 = 0.5 * 10^9 * price_numerator / price_denominator
     // 2 / 1000 = price_numerator / price_denominator
-    const priceNumerator = new BN(0);
+    const priceNumerator = new BN(2);
     const priceDenominator = new BN(1);
     const paymentMinAmount = new BN(LAMPORTS_PER_SOL); // min amount 1 SOL
     const advanceFraction = 2000; // 20%
+    const isOnlyVesting = false;
     const releaseSchedule = [
       {
         releaseTime: new BN(Math.floor(new Date("2022-12-01T00:00:00Z").getTime() / 1000)), // 1 dec 2022
@@ -50,10 +50,8 @@ describe("crowdsale-vesting", () => {
         fraction: 4000,
       }
     ];
-
     const sale = Keypair.generate();
-
-    const pubkeys = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, releaseSchedule)
+    const pubkeys = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, false, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -61,8 +59,7 @@ describe("crowdsale-vesting", () => {
         payment: payment.publicKey,
         payer: wallet,
       }).pubkeys();
-
-    const tx = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, releaseSchedule)
+    const tx = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, false, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -89,7 +86,7 @@ describe("crowdsale-vesting", () => {
   it("Should initialize sale without vesting", async () => {
     const sale = Keypair.generate();
 
-    const pubkeys = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+    const pubkeys = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -98,7 +95,7 @@ describe("crowdsale-vesting", () => {
         payer: wallet,
       }).pubkeys();
 
-    const tx = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+    const tx = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -132,7 +129,7 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    const pubkeys = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 0, releaseSchedule)
+    const pubkeys = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 0, false, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -141,7 +138,7 @@ describe("crowdsale-vesting", () => {
         payer: wallet,
       }).pubkeys();
 
-    const tx = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 0, releaseSchedule)
+    const tx = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 0, false, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -175,7 +172,7 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    const pubkeys = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, releaseSchedule)
+    const pubkeys = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -184,7 +181,7 @@ describe("crowdsale-vesting", () => {
         payer: wallet,
       }).pubkeys();
 
-    const tx = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, releaseSchedule)
+    const tx = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -218,7 +215,7 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    await expect(program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10001, releaseSchedule)
+    await expect(program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10001, false, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -242,7 +239,7 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    await expect(program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 2000, releaseSchedule)
+    await expect(program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 2000, false, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -266,7 +263,7 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    await expect(program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 1990, releaseSchedule)
+    await expect(program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 1990, false, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -279,7 +276,7 @@ describe("crowdsale-vesting", () => {
   it("Should NOT initialize sale with price == 0", async () => {
     const sale = Keypair.generate();
 
-    await expect(program.methods.initialize(new BN(0), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+    await expect(program.methods.initialize(new BN(0), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -288,7 +285,7 @@ describe("crowdsale-vesting", () => {
         payer: wallet,
       }).signers([sale]).rpc()).to.be.rejectedWith("ZeroPrice");
 
-    await expect(program.methods.initialize(new BN(2), new BN(0), new BN(LAMPORTS_PER_SOL), 10000, [])
+    await expect(program.methods.initialize(new BN(2), new BN(0), new BN(LAMPORTS_PER_SOL),10000, false, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -302,7 +299,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const newAuthority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -330,7 +327,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const newAuthority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -351,7 +348,7 @@ describe("crowdsale-vesting", () => {
   it("Should pause and resume with right authority", async () => {
     const sale = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -389,7 +386,7 @@ describe("crowdsale-vesting", () => {
   it("Should NOT pause or resume already paused or active sale", async () => {
     const sale = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -433,7 +430,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const invalidAuthority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -516,7 +513,7 @@ describe("crowdsale-vesting", () => {
     ];
 
     // init sale
-    await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, releaseSchedule)
+    await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, isOnlyVesting, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,

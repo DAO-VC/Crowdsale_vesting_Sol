@@ -18,6 +18,7 @@ pub struct Sale {
 
     pub signer_bump: u8,
     pub sale_token_bump: u8,
+    pub no_sale_just_vesting:bool
 }
 
 impl Sale {
@@ -33,6 +34,7 @@ impl Sale {
             + 32
             + 32
             + 32
+            + 1
             + 1
             + 1
     }
