@@ -4,7 +4,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(Accounts)]
-#[instruction(price_numerator: u64, price_denominator: u64, payment_min_amount: u64, advance_fraction: u16, release_schedule: Vec<ReleaseSchedule>)]
+#[instruction(price_numerator: u64, price_denominator: u64, payment_min_amount: u64, advance_fraction: u16, no_sale_just_vesting:bool, release_schedule: Vec<ReleaseSchedule>)]
 pub struct Initialize<'info> {
     #[account(
         init,

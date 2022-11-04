@@ -35,6 +35,7 @@ describe("crowdsale-vesting", () => {
     // received_tokens_amount = lamports * price_numerator / price_denominator
     // 1 * 10^9 = 0.5 * 10^9 * price_numerator / price_denominator
     // 2 / 1000 = price_numerator / price_denominator
+    const sale = Keypair.generate();
     const priceNumerator = new BN(2);
     const priceDenominator = new BN(1);
     const paymentMinAmount = new BN(LAMPORTS_PER_SOL); // min amount 1 SOL
@@ -50,8 +51,8 @@ describe("crowdsale-vesting", () => {
         fraction: 4000,
       }
     ];
-    const sale = Keypair.generate();
-    const pubkeys = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, false, releaseSchedule)
+    
+    const pubkeys = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, isOnlyVesting, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -59,7 +60,7 @@ describe("crowdsale-vesting", () => {
         payment: payment.publicKey,
         payer: wallet,
       }).pubkeys();
-    const tx = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, false, releaseSchedule)
+    const tx = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, isOnlyVesting, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
