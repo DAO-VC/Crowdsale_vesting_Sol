@@ -2,7 +2,7 @@ use crate::errors::SaleError;
 use crate::state::{Sale, Vesting, VestingSchedule};
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
-use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::associated_token::{get_associated_token_address, AssociatedToken};
 use anchor_spl::token;
 use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
 
@@ -64,15 +64,7 @@ pub struct ExecuteSale<'info> {
     /// CHECK: Can be uninitialized, will be checked in the handler
     pub vesting: UncheckedAccount<'info>,
 
-    #[account(
-        mut,
-        seeds = [
-            user.key().as_ref(),
-            token_program.key().as_ref(),
-            sale_mint.key().as_ref(),
-        ], bump,
-        seeds::program = associated_token_program.key(),
-    )]
+    #[account(mut)]
     /// CHECK: Can be uninitialized, will be checked in the handler
     pub vesting_token: UncheckedAccount<'info>,
 
@@ -173,6 +165,15 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
             SaleError::IncompatibleVesting
         );
 
+        require_keys_eq!(
+            ctx.accounts.vesting_token.key(),
+            get_associated_token_address(
+                &ctx.accounts.vesting.key(),
+                &ctx.accounts.sale_mint.key()
+            ),
+            SaleError::IncompatibleVesting,
+        );
+
         let vesting_token: Account<TokenAccount> = Account::try_from(&ctx.accounts.vesting_token)?;
         require_keys_eq!(
             vesting_token.mint,
@@ -181,7 +182,7 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
         );
         require_keys_eq!(
             vesting_token.owner,
-            ctx.accounts.user.key(),
+            ctx.accounts.vesting.key(),
             SaleError::IncompatibleVesting
         );
 
