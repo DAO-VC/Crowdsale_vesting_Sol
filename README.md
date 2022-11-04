@@ -70,14 +70,14 @@ CeTriJZCuijyTW2oM9pZEudT4eykCFL6n2MzqhYrUaX
 Init contract on devnet
 ```shell
 $ anchor run init --provider.cluster devnet
-Init transaction 4AaZdNtaWsWrRHbGdeDJB9UCQn9WM4WWc6nPPfh8kejJuwNosuNT4NLvqRMW7ZZNhdPGLNY7xMFKpL1cCk4kTy6Y
-Sale account: EeoARNjz8hFgXea68LVUPuYW61vNgXCtb7VaEsGMfbG
-Fund sale tokens to AKPApdkUr4FXUgaNvgcMJrjq4b11atQFT3KRzbuuH3ve
-Done in 8.88s.
+Init transaction 4keGVu6sipoN1PHUzh3xAUkuphq2psp2zqj9Knqq59w89x3XEqfLMdfnTARrpw8x5JAR7PsYawGqAWVN4U2RCbKT
+Sale account: FPB5mELqr8UdLdsVHKrMgcUviHGJxk7BRBd4PzeeGyVD
+Fund sale tokens to EMBscxK9PUyg1JKJ4T3ajhP221phgdzhE5Cg9VVTYDEB
+Done in 11.09s.
 ```
 
 ```
 program_id = DWpR44f2YDsQR1MZeucD1wrs1Toe4TbWJrZeM2PMSapm
-sale = EeoARNjz8hFgXea68LVUPuYW61vNgXCtb7VaEsGMfbG
+sale = FPB5mELqr8UdLdsVHKrMgcUviHGJxk7BRBd4PzeeGyVD
 sale_mint = CeTriJZCuijyTW2oM9pZEudT4eykCFL6n2MzqhYrUaX
 ```
