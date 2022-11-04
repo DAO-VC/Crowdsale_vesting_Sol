@@ -108,7 +108,7 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
             sale.authority,
             ctx.accounts.user.key(),
             SaleError::NotAuthorityVests
-        )?;
+        );
         token_purchase_amount = payment_amount;
     }
 
