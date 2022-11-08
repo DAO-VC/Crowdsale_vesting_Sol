@@ -11,7 +11,7 @@ pub struct Claim<'info> {
         mut,
         seeds = [
             user.key().as_ref(),
-            sale_mint   .key().as_ref(),
+            sale_mint.key().as_ref(),
         ],
         bump = vesting.vesting_bump,
         has_one = user,

@@ -8,7 +8,7 @@ import { expect } from 'chai';
 import * as chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import {Keypair, PublicKey} from "@solana/web3.js";
-import {creatMintIfRequired, getATA, getCurrentBlockTime, mintToATA} from "./utils";
+import {creatMintIfRequired, getATA, getCurrentBlockTime, mintToATA, tokenBalance} from "./utils";
 
 chai.use(chaiAsPromised);
 
@@ -26,7 +26,7 @@ describe("crowdsale-vesting", () => {
   const payment = Keypair.generate();
   before(async () => {
     await creatMintIfRequired(splProgram, saleMint, wallet);
-    await mintToATA(splProgram, wallet, new BN(1_000_000_000), saleMint.publicKey, wallet);
+    await mintToATA(splProgram, wallet, new BN(100_000_000_000), saleMint.publicKey, wallet);
   });
 
   it("Should initialize sale with some advance and vesting", async () => {
@@ -471,50 +471,11 @@ describe("crowdsale-vesting", () => {
       ).signers([invalidAuthority]).rpc()).to.be.rejected;
   });
 
-  // Должен мочь сделать fund
-  // Должен мочь сделать прямой fund (через transfer)
-  // Должен мочь сделать withdraw (если есть authority)
-  // Не должен мочь сделать withdraw (если нет authority)
-  // Должен мочь сделать withdraw на всю сумму
-  // Должен мочь сделать pause/resume с authority
-  // Не должен без authority делать pause/resume
+  it("Should fund through fund instruction", async () => {
+    const sale = Keypair.generate();
+    const authority = Keypair.generate();
 
-  // Должен мочь init vesting
-
-  // Должен мочь сделать init с вестингом и advance + executeSale + unlock
-  // Не должен мочь сделать unlock если нечего брать
-
-  // Должен мочь сделать init без вестинга + executeSale - как с вестинг аккаунтом, так и без вестинг аккаунта
-  // Не должен мочь сделать claim для пустого вестинга
-
-  // Должен мочь сделать init без advance + initVesting + executeSale + unlock
-  // Не должен мочь сделать executeSale если не проинициализирован вестинг
-
-  // Должен мочь докупить в активный vesting из того же sale
-  // Должен мочь докупить в активный vesting из другого sale
-  // Не должен мочь докупить если у sale другое расписание
-  // Не должен мочь докупить если у sale другой токен
-
-  // Должен мочь докупить если у first_sale не было вестинга
-
-/*
-  it("Should init, fund and executeSale and unlock first payment", async () => {
-    const currentBlockTime = await getCurrentBlockTime(provider.connection);
-
-    // Price 1 TOKEN (decimal=6) for 0.5 SOL (decimal=9)
-    const priceNumerator = new BN(2);
-    const priceDenominator = new BN(1000);
-
-    // Min amount 10 SOL
-    const paymentMinAmount = new BN(10_000_000_000);
-    const advanceFraction = 2000; // 20%
-    const releaseSchedule = [
-      new BN(currentBlockTime - 5), // -5 sec from now
-      new BN(currentBlockTime + 5), // +5 sec from now
-    ];
-
-    // init sale
-    await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, isOnlyVesting, releaseSchedule)
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -523,7 +484,16 @@ describe("crowdsale-vesting", () => {
         payer: wallet,
       }).signers([sale]).rpc();
 
-    // fund sale
+    const pubkeys = await program.methods.fund(new BN(1_000_000_000))
+      .accounts({
+        sale: sale.publicKey,
+        user: wallet,
+        source: await getATA(wallet, saleMint.publicKey),
+      }).pubkeys();
+
+    const saleToken = pubkeys["saleToken"];
+    const balance_before = await tokenBalance(splProgram, saleToken);
+
     await program.methods.fund(new BN(1_000_000_000))
       .accounts({
         sale: sale.publicKey,
@@ -531,12 +501,166 @@ describe("crowdsale-vesting", () => {
         source: await getATA(wallet, saleMint.publicKey),
       }).rpc();
 
-    // enable sale
-    await program.methods.resume()
+    const balance_after = await tokenBalance(splProgram, saleToken);
+
+    expect(balance_after - balance_before).to.be.equal(1_000_000_000);
+  });
+
+  it("Should fund through spl transfer", async () => {
+    const sale = Keypair.generate();
+    const authority = Keypair.generate();
+
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
       .accounts({
         sale: sale.publicKey,
-        authority: authority.publicKey
-      }).signers([authority]).rpc();
+        authority: authority.publicKey,
+        saleMint: saleMint.publicKey,
+        payment: payment.publicKey,
+        payer: wallet,
+      }).signers([sale]).rpc();
+
+    const saleAccount = await program.account.sale.fetch(sale.publicKey);
+    const saleToken = saleAccount.saleToken;
+
+    await splProgram.methods.transfer(new BN(1_000_000_000))
+      .accounts({
+        source: await getATA(wallet, saleMint.publicKey),
+        destination: saleToken,
+        authority: wallet,
+      }).rpc();
+  });
+
+  it("Should withdraw remaining tokens with authority", async () => {
+    const sale = Keypair.generate();
+    const authority = Keypair.generate();
+
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+      .accounts({
+        sale: sale.publicKey,
+        authority: authority.publicKey,
+        saleMint: saleMint.publicKey,
+        payment: payment.publicKey,
+        payer: wallet,
+      }).signers([sale]).rpc();
+
+    const saleAccount = await program.account.sale.fetch(sale.publicKey);
+    const saleToken = saleAccount.saleToken;
+
+    await splProgram.methods.transfer(new BN(1_000_000_000))
+      .accounts({
+        source: await getATA(wallet, saleMint.publicKey),
+        destination: saleToken,
+        authority: wallet,
+      }).rpc();
+
+    const balance_before = await tokenBalance(splProgram, saleToken);
+
+    await program.methods.withdraw(new BN(1_000_000_000))
+      .accounts({
+        sale: sale.publicKey,
+        authority: authority.publicKey,
+        destination: await getATA(wallet, saleMint.publicKey),
+      }).signers([authority])
+      .rpc();
+
+    const balance_after = await tokenBalance(splProgram, saleToken);
+
+    expect(balance_before - balance_after).to.be.equal(1_000_000_000);
+  });
+
+  it("Should NOT withdraw remaining tokens without authority", async () => {
+    const sale = Keypair.generate();
+    const invalidAuthority = Keypair.generate();
+
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+      .accounts({
+        sale: sale.publicKey,
+        authority: authority.publicKey,
+        saleMint: saleMint.publicKey,
+        payment: payment.publicKey,
+        payer: wallet,
+      }).signers([sale]).rpc();
+
+    const saleAccount = await program.account.sale.fetch(sale.publicKey);
+    const saleToken = saleAccount.saleToken;
+
+    await splProgram.methods.transfer(new BN(1_000_000_000))
+      .accounts({
+        source: await getATA(wallet, saleMint.publicKey),
+        destination: saleToken,
+        authority: wallet,
+      }).rpc();
+
+    await expect(
+      program.methods.withdraw(new BN(1_000_000_000))
+        .accounts({
+          sale: sale.publicKey,
+          authority: invalidAuthority.publicKey,
+          destination: await getATA(wallet, saleMint.publicKey),
+        }).signers([invalidAuthority]).rpc()
+    ).to.be.rejected;
+  });
+
+  it("Should withdraw ALL remaining tokens with authority", async () => {
+    const sale = Keypair.generate();
+    const authority = Keypair.generate();
+
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+      .accounts({
+        sale: sale.publicKey,
+        authority: authority.publicKey,
+        saleMint: saleMint.publicKey,
+        payment: payment.publicKey,
+        payer: wallet,
+      }).signers([sale]).rpc();
+
+    const saleAccount = await program.account.sale.fetch(sale.publicKey);
+    const saleToken = saleAccount.saleToken;
+
+    await splProgram.methods.transfer(new BN(1_000_000_000))
+      .accounts({
+        source: await getATA(wallet, saleMint.publicKey),
+        destination: saleToken,
+        authority: wallet,
+      }).rpc();
+
+    const U64_MAX = "18446744073709551615";
+
+    await program.methods.withdraw(new BN(U64_MAX))
+      .accounts({
+        sale: sale.publicKey,
+        authority: authority.publicKey,
+        destination: await getATA(wallet, saleMint.publicKey),
+      }).signers([authority])
+      .rpc();
+
+    const balance_after = await tokenBalance(splProgram, saleToken);
+
+    expect(balance_after).to.be.equal(0);
+  });
+
+  it("Should init vesting account for sales with vesting", async () => {
+    const sale = Keypair.generate();
+
+    const releaseSchedule = [
+      {
+        releaseTime: new BN(Math.floor(new Date("2022-12-01T00:00:00Z").getTime() / 1000)), // 1 dec 2022
+        fraction: 4000,
+      },
+      {
+        releaseTime: new BN(Math.floor(new Date("2023-01-01T00:00:00Z").getTime() / 1000)), // 1 jan 2023
+        fraction: 4000,
+      }
+    ];
+
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 2000, releaseSchedule)
+      .accounts({
+        sale: sale.publicKey,
+        authority: authority.publicKey,
+        saleMint: saleMint.publicKey,
+        payment: payment.publicKey,
+        payer: wallet,
+      }).signers([sale]).rpc();
 
     const [vesting, _nonce] = await PublicKey.findProgramAddress(
       [wallet.toBuffer(), saleMint.publicKey.toBuffer()],
@@ -544,25 +668,704 @@ describe("crowdsale-vesting", () => {
     );
     const vestingToken = await getATA(vesting, saleMint.publicKey);
 
-    // execute sale
-    await program.methods.executeSale(new BN(10_000_000_000))
+    await program.methods.initVesting().accounts({
+      sale: sale.publicKey,
+      saleMint: saleMint.publicKey,
+      user: wallet,
+      vesting: vesting,
+      vestingToken: vestingToken,
+    }).rpc();
+
+    const vestingAccount = await program.account.vesting.fetch(vesting);
+    expect(vestingAccount.user).to.be.deep.equal(wallet);
+    expect(vestingAccount.saleMint).to.be.deep.equal(saleMint.publicKey);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(0);
+    expect(vestingAccount.schedule.length).to.be.equal(2);
+    expect(vestingAccount.schedule[0].releaseTime.toNumber()).to.be.equal(releaseSchedule[0].releaseTime.toNumber());
+    expect(vestingAccount.schedule[1].releaseTime.toNumber()).to.be.equal(releaseSchedule[1].releaseTime.toNumber());
+  });
+
+  it("Should NOT init vesting account for sales without vesting", async () => {
+    const sale = Keypair.generate();
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
       .accounts({
         sale: sale.publicKey,
-        user: wallet,
-        userSaleToken: await getATA(wallet, saleMint.publicKey),
-        vestingToken,
+        authority: authority.publicKey,
         saleMint: saleMint.publicKey,
         payment: payment.publicKey,
-      }).rpc();
+        payer: wallet,
+      }).signers([sale]).rpc();
 
-    // claim tokens
-    await program.methods.claim()
-      .accounts({
-        vestingToken,
-        mint: saleMint.publicKey,
-        authority: wallet,
-        userToken: await getATA(wallet, saleMint.publicKey),
-      }).rpc();
+    const [vesting, _nonce] = await PublicKey.findProgramAddress(
+      [wallet.toBuffer(), saleMint.publicKey.toBuffer()],
+      program.programId
+    );
+    const vestingToken = await getATA(vesting, saleMint.publicKey);
+
+    await expect(program.methods.initVesting().accounts({
+      sale: sale.publicKey,
+      saleMint: saleMint.publicKey,
+      user: wallet,
+      vesting: vesting,
+      vestingToken: vestingToken,
+    }).rpc()).to.be.rejected;
   });
- */
+
+  it("Should init sale with vesting and advance, fund, executeSale and claim", async () => {
+    const sale = Keypair.generate();
+
+    const currentBlockTime = await getCurrentBlockTime(provider.connection);
+
+    const releaseSchedule = [
+      {
+        releaseTime: new BN(currentBlockTime - 1),
+        fraction: 4000,
+      },
+      {
+        releaseTime: new BN(currentBlockTime + 1000),
+        fraction: 4000,
+      }
+    ];
+
+    const user = Keypair.generate();
+    await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
+
+    // init, fund and resume
+    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 2000, releaseSchedule)
+      .accounts({
+        sale: sale.publicKey,
+        authority: authority.publicKey,
+        saleMint: saleMint.publicKey,
+        payment: payment.publicKey,
+        payer: wallet,
+      })
+      .postInstructions([
+        await program.methods.fund(new BN(1_000_000_000))
+          .accounts({
+            sale: sale.publicKey,
+            user: wallet,
+            source: await getATA(wallet, saleMint.publicKey),
+          }).instruction(),
+        await program.methods.resume().accounts({
+          sale: sale.publicKey,
+          authority: authority.publicKey,
+        }).instruction()
+      ])
+      .signers([sale, authority]).rpc();
+
+    const [vesting, _nonce] = await PublicKey.findProgramAddress(
+      [user.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
+      program.programId
+    );
+    const vestingToken = await getATA(vesting, saleMint.publicKey);
+
+    const userSaleToken = await getATA(user.publicKey, saleMint.publicKey)
+
+    // execute sale for 0.001 SOL and will receive 20% from 0.002 tokens, remaining 80% will in vestingToken
+    await program.methods.executeSale(new BN(1_000_000)).accounts({
+      sale: sale.publicKey,
+      user: user.publicKey,
+      userSaleToken,
+      saleMint: saleMint.publicKey,
+      payment: payment.publicKey,
+      vesting,
+      vestingToken,
+    }).preInstructions([
+      await program.methods.initVesting().accounts({
+        sale: sale.publicKey,
+        saleMint: saleMint.publicKey,
+        user: user.publicKey,
+        vesting,
+        vestingToken,
+      }).instruction()
+    ])
+      .signers([user])
+      .rpc();
+
+    // 0.001 SOL / 0.5 token per SOL * 20% = 0.0004 tokens
+    expect(await tokenBalance(splProgram, userSaleToken)).to.be.equal(400_000);
+
+    await program.methods.claim().accounts({
+      vesting,
+      vestingToken,
+      saleMint: saleMint.publicKey,
+      user: user.publicKey,
+      userToken: userSaleToken,
+    }).signers([user]).rpc();
+
+    expect(await tokenBalance(splProgram, userSaleToken)).to.be.equal(1_200_000);
+
+    await expect(program.methods.claim().accounts({
+      vesting,
+      vestingToken,
+      saleMint: saleMint.publicKey,
+      user: user.publicKey,
+      userToken: userSaleToken,
+    }).signers([user]).rpc()).to.be.rejected;
+  });
+
+  it("Should init sale with only advance, fund, executeSale and claim", async () => {
+    const sale = Keypair.generate();
+
+    const user = Keypair.generate();
+    await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
+
+    // init, fund and resume
+    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 10000, [])
+      .accounts({
+        sale: sale.publicKey,
+        authority: authority.publicKey,
+        saleMint: saleMint.publicKey,
+        payment: payment.publicKey,
+        payer: wallet,
+      })
+      .postInstructions([
+        await program.methods.fund(new BN(1_000_000_000))
+          .accounts({
+            sale: sale.publicKey,
+            user: wallet,
+            source: await getATA(wallet, saleMint.publicKey),
+          }).instruction(),
+        await program.methods.resume().accounts({
+          sale: sale.publicKey,
+          authority: authority.publicKey,
+        }).instruction()
+      ])
+      .signers([sale, authority]).rpc();
+
+    const [vesting, _nonce] = await PublicKey.findProgramAddress(
+      [user.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
+      program.programId
+    );
+    const vestingToken = await getATA(vesting, saleMint.publicKey);
+    const userSaleToken = await getATA(user.publicKey, saleMint.publicKey)
+
+    await program.methods.executeSale(new BN(1_000_000)).accounts({
+      sale: sale.publicKey,
+      user: user.publicKey,
+      userSaleToken,
+      saleMint: saleMint.publicKey,
+      payment: payment.publicKey,
+      vesting,
+      vestingToken,
+    })
+      .signers([user])
+      .rpc();
+
+    expect(await tokenBalance(splProgram, userSaleToken)).to.be.equal(2_000_000);
+  });
+
+  it("Should init sale with only vesting, fund, executeSale and claim", async () => {
+    const sale = Keypair.generate();
+
+    const currentBlockTime = await getCurrentBlockTime(provider.connection);
+
+    const releaseSchedule = [
+      {
+        releaseTime: new BN(currentBlockTime - 1),
+        fraction: 5000,
+      },
+      {
+        releaseTime: new BN(currentBlockTime + 1000),
+        fraction: 5000,
+      }
+    ];
+
+    const user = Keypair.generate();
+    await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
+
+    // init, fund and resume
+    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, releaseSchedule)
+      .accounts({
+        sale: sale.publicKey,
+        authority: authority.publicKey,
+        saleMint: saleMint.publicKey,
+        payment: payment.publicKey,
+        payer: wallet,
+      })
+      .postInstructions([
+        await program.methods.fund(new BN(1_000_000_000))
+          .accounts({
+            sale: sale.publicKey,
+            user: wallet,
+            source: await getATA(wallet, saleMint.publicKey),
+          }).instruction(),
+        await program.methods.resume().accounts({
+          sale: sale.publicKey,
+          authority: authority.publicKey,
+        }).instruction()
+      ])
+      .signers([sale, authority]).rpc();
+
+    const [vesting, _nonce] = await PublicKey.findProgramAddress(
+      [user.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
+      program.programId
+    );
+    const vestingToken = await getATA(vesting, saleMint.publicKey);
+
+    const userSaleToken = await getATA(user.publicKey, saleMint.publicKey)
+
+    await program.methods.executeSale(new BN(1_000_000)).accounts({
+      sale: sale.publicKey,
+      user: user.publicKey,
+      userSaleToken,
+      saleMint: saleMint.publicKey,
+      payment: payment.publicKey,
+      vesting,
+      vestingToken,
+    }).preInstructions([
+      await program.methods.initVesting().accounts({
+        sale: sale.publicKey,
+        saleMint: saleMint.publicKey,
+        user: user.publicKey,
+        vesting,
+        vestingToken,
+      }).instruction()
+    ])
+      .signers([user])
+      .rpc();
+
+    // 0.001 SOL / 0.5 token per SOL * 20% = 0.0004 tokens
+    expect(await tokenBalance(splProgram, userSaleToken)).to.be.equal(0);
+
+    await program.methods.claim().accounts({
+      vesting,
+      vestingToken,
+      saleMint: saleMint.publicKey,
+      user: user.publicKey,
+      userToken: userSaleToken,
+    }).signers([user]).rpc();
+
+    expect(await tokenBalance(splProgram, userSaleToken)).to.be.equal(1_000_000);
+
+    await expect(program.methods.claim().accounts({
+      vesting,
+      vestingToken,
+      saleMint: saleMint.publicKey,
+      user: user.publicKey,
+      userToken: userSaleToken,
+    }).signers([user]).rpc()).to.be.rejected;
+  });
+
+  it("Should NOT executeSale without inited vesting", async () => {
+    const sale = Keypair.generate();
+
+    const currentBlockTime = await getCurrentBlockTime(provider.connection);
+
+    const releaseSchedule = [
+      {
+        releaseTime: new BN(currentBlockTime - 1),
+        fraction: 5000,
+      },
+      {
+        releaseTime: new BN(currentBlockTime + 1000),
+        fraction: 5000,
+      }
+    ];
+
+    const user = Keypair.generate();
+    await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
+
+    // init, fund and resume
+    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, releaseSchedule)
+      .accounts({
+        sale: sale.publicKey,
+        authority: authority.publicKey,
+        saleMint: saleMint.publicKey,
+        payment: payment.publicKey,
+        payer: wallet,
+      })
+      .postInstructions([
+        await program.methods.fund(new BN(1_000_000_000))
+          .accounts({
+            sale: sale.publicKey,
+            user: wallet,
+            source: await getATA(wallet, saleMint.publicKey),
+          }).instruction(),
+        await program.methods.resume().accounts({
+          sale: sale.publicKey,
+          authority: authority.publicKey,
+        }).instruction()
+      ])
+      .signers([sale, authority]).rpc();
+
+    const [vesting, _nonce] = await PublicKey.findProgramAddress(
+      [user.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
+      program.programId
+    );
+    const vestingToken = await getATA(vesting, saleMint.publicKey);
+
+    const userSaleToken = await getATA(user.publicKey, saleMint.publicKey)
+
+    await expect(program.methods.executeSale(new BN(1_000_000)).accounts({
+      sale: sale.publicKey,
+      user: user.publicKey,
+      userSaleToken,
+      saleMint: saleMint.publicKey,
+      payment: payment.publicKey,
+      vesting,
+      vestingToken,
+    })
+      .signers([user])
+      .rpc()).to.be.rejected;
+  });
+
+  it("Should executeSale multiple times for the same sale", async () => {
+    const sale = Keypair.generate();
+
+    const currentBlockTime = await getCurrentBlockTime(provider.connection);
+
+    const releaseSchedule = [
+      {
+        releaseTime: new BN(currentBlockTime - 1),
+        fraction: 5000,
+      },
+      {
+        releaseTime: new BN(currentBlockTime + 1000),
+        fraction: 5000,
+      }
+    ];
+
+    const user = Keypair.generate();
+    await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
+
+    // init, fund and resume
+    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, releaseSchedule)
+      .accounts({
+        sale: sale.publicKey,
+        authority: authority.publicKey,
+        saleMint: saleMint.publicKey,
+        payment: payment.publicKey,
+        payer: wallet,
+      })
+      .postInstructions([
+        await program.methods.fund(new BN(1_000_000_000))
+          .accounts({
+            sale: sale.publicKey,
+            user: wallet,
+            source: await getATA(wallet, saleMint.publicKey),
+          }).instruction(),
+        await program.methods.resume().accounts({
+          sale: sale.publicKey,
+          authority: authority.publicKey,
+        }).instruction()
+      ])
+      .signers([sale, authority]).rpc();
+
+    const [vesting, _nonce] = await PublicKey.findProgramAddress(
+      [user.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
+      program.programId
+    );
+    const vestingToken = await getATA(vesting, saleMint.publicKey);
+
+    const userSaleToken = await getATA(user.publicKey, saleMint.publicKey)
+
+    await program.methods.executeSale(new BN(1_000_000)).accounts({
+      sale: sale.publicKey,
+      user: user.publicKey,
+      userSaleToken,
+      saleMint: saleMint.publicKey,
+      payment: payment.publicKey,
+      vesting,
+      vestingToken,
+    }).preInstructions([
+      await program.methods.initVesting().accounts({
+        sale: sale.publicKey,
+        saleMint: saleMint.publicKey,
+        user: user.publicKey,
+        vesting,
+        vestingToken,
+      }).instruction()
+    ])
+      .signers([user])
+      .rpc();
+
+    let vestingAccount = await program.account.vesting.fetch(vesting);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(2_000_000);
+    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(1_000_000);
+    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(1_000_000);
+    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(2_000_000);
+
+    await program.methods.executeSale(new BN(1_000_000)).accounts({
+      sale: sale.publicKey,
+      user: user.publicKey,
+      userSaleToken,
+      saleMint: saleMint.publicKey,
+      payment: payment.publicKey,
+      vesting,
+      vestingToken,
+    })
+      .signers([user])
+      .rpc();
+
+    vestingAccount = await program.account.vesting.fetch(vesting);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(4_000_000);
+    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(2_000_000);
+    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(2_000_000);
+    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(4_000_000);
+  });
+
+  it("Should executeSale multiple times for different sales with same schedule", async () => {
+    const sale1 = Keypair.generate();
+    const sale2 = Keypair.generate();
+
+    const currentBlockTime = await getCurrentBlockTime(provider.connection);
+
+    const releaseSchedule1 = [
+      {
+        releaseTime: new BN(currentBlockTime - 1),
+        fraction: 5000,
+      },
+      {
+        releaseTime: new BN(currentBlockTime + 1000),
+        fraction: 5000,
+      }
+    ];
+
+    const user = Keypair.generate();
+    await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
+
+    // Init sale1
+    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, releaseSchedule1)
+      .accounts({
+        sale: sale1.publicKey,
+        authority: authority.publicKey,
+        saleMint: saleMint.publicKey,
+        payment: payment.publicKey,
+        payer: wallet,
+      })
+      .postInstructions([
+        await program.methods.fund(new BN(1_000_000_000))
+          .accounts({
+            sale: sale1.publicKey,
+            user: wallet,
+            source: await getATA(wallet, saleMint.publicKey),
+          }).instruction(),
+        await program.methods.resume().accounts({
+          sale: sale1.publicKey,
+          authority: authority.publicKey,
+        }).instruction()
+      ])
+      .signers([sale1, authority]).rpc();
+
+    const releaseSchedule2 = [
+      {
+        releaseTime: new BN(currentBlockTime - 1),
+        fraction: 4000,
+      },
+      {
+        releaseTime: new BN(currentBlockTime + 1000),
+        fraction: 4000,
+      }
+    ];
+
+    // init sale2
+    await program.methods.initialize(new BN(4), new BN(1), new BN(1_000_000), 2000, releaseSchedule2)
+      .accounts({
+        sale: sale2.publicKey,
+        authority: authority.publicKey,
+        saleMint: saleMint.publicKey,
+        payment: payment.publicKey,
+        payer: wallet,
+      })
+      .postInstructions([
+        await program.methods.fund(new BN(1_000_000_000))
+          .accounts({
+            sale: sale2.publicKey,
+            user: wallet,
+            source: await getATA(wallet, saleMint.publicKey),
+          }).instruction(),
+        await program.methods.resume().accounts({
+          sale: sale2.publicKey,
+          authority: authority.publicKey,
+        }).instruction()
+      ])
+      .signers([sale2, authority]).rpc();
+
+
+    const [vesting, _nonce] = await PublicKey.findProgramAddress(
+      [user.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
+      program.programId
+    );
+    const vestingToken = await getATA(vesting, saleMint.publicKey);
+
+    const userSaleToken = await getATA(user.publicKey, saleMint.publicKey)
+
+    // executeSale for sale1
+    await program.methods.executeSale(new BN(1_000_000)).accounts({
+      sale: sale1.publicKey,
+      user: user.publicKey,
+      userSaleToken,
+      saleMint: saleMint.publicKey,
+      payment: payment.publicKey,
+      vesting,
+      vestingToken,
+    }).preInstructions([
+      await program.methods.initVesting().accounts({
+        sale: sale1.publicKey,
+        saleMint: saleMint.publicKey,
+        user: user.publicKey,
+        vesting,
+        vestingToken,
+      }).instruction()
+    ])
+      .signers([user])
+      .rpc();
+
+    let vestingAccount = await program.account.vesting.fetch(vesting);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(2_000_000);
+    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(1_000_000);
+    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(1_000_000);
+    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(2_000_000);
+
+    // executeSale for sale2
+    await program.methods.executeSale(new BN(1_000_000)).accounts({
+      sale: sale2.publicKey,
+      user: user.publicKey,
+      userSaleToken,
+      saleMint: saleMint.publicKey,
+      payment: payment.publicKey,
+      vesting,
+      vestingToken,
+    })
+      .signers([user])
+      .rpc();
+
+    vestingAccount = await program.account.vesting.fetch(vesting);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(5_200_000);
+    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(2_600_000);
+    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(2_600_000);
+    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(5_200_000);
+  });
+
+  it("Should NOT executeSale multiple times for different sales with different schedule", async () => {
+    const sale1 = Keypair.generate();
+    const sale2 = Keypair.generate();
+
+    const currentBlockTime = await getCurrentBlockTime(provider.connection);
+
+    const releaseSchedule1 = [
+      {
+        releaseTime: new BN(currentBlockTime - 1),
+        fraction: 5000,
+      },
+      {
+        releaseTime: new BN(currentBlockTime + 1000),
+        fraction: 5000,
+      }
+    ];
+
+    const user = Keypair.generate();
+    await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
+
+    // Init sale1
+    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, releaseSchedule1)
+      .accounts({
+        sale: sale1.publicKey,
+        authority: authority.publicKey,
+        saleMint: saleMint.publicKey,
+        payment: payment.publicKey,
+        payer: wallet,
+      })
+      .postInstructions([
+        await program.methods.fund(new BN(1_000_000_000))
+          .accounts({
+            sale: sale1.publicKey,
+            user: wallet,
+            source: await getATA(wallet, saleMint.publicKey),
+          }).instruction(),
+        await program.methods.resume().accounts({
+          sale: sale1.publicKey,
+          authority: authority.publicKey,
+        }).instruction()
+      ])
+      .signers([sale1, authority]).rpc();
+
+    const releaseSchedule2 = [
+      {
+        releaseTime: new BN(currentBlockTime - 1),
+        fraction: 4000,
+      },
+      {
+        releaseTime: new BN(currentBlockTime + 1000),
+        fraction: 2000,
+      },
+      {
+        releaseTime: new BN(currentBlockTime + 2000),
+        fraction: 2000,
+      }
+    ];
+
+    // init sale2
+    await program.methods.initialize(new BN(4), new BN(1), new BN(1_000_000), 2000, releaseSchedule2)
+      .accounts({
+        sale: sale2.publicKey,
+        authority: authority.publicKey,
+        saleMint: saleMint.publicKey,
+        payment: payment.publicKey,
+        payer: wallet,
+      })
+      .postInstructions([
+        await program.methods.fund(new BN(1_000_000_000))
+          .accounts({
+            sale: sale2.publicKey,
+            user: wallet,
+            source: await getATA(wallet, saleMint.publicKey),
+          }).instruction(),
+        await program.methods.resume().accounts({
+          sale: sale2.publicKey,
+          authority: authority.publicKey,
+        }).instruction()
+      ])
+      .signers([sale2, authority]).rpc();
+
+
+    const [vesting, _nonce] = await PublicKey.findProgramAddress(
+      [user.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
+      program.programId
+    );
+    const vestingToken = await getATA(vesting, saleMint.publicKey);
+
+    const userSaleToken = await getATA(user.publicKey, saleMint.publicKey)
+
+    // executeSale for sale1
+    await program.methods.executeSale(new BN(1_000_000)).accounts({
+      sale: sale1.publicKey,
+      user: user.publicKey,
+      userSaleToken,
+      saleMint: saleMint.publicKey,
+      payment: payment.publicKey,
+      vesting,
+      vestingToken,
+    }).preInstructions([
+      await program.methods.initVesting().accounts({
+        sale: sale1.publicKey,
+        saleMint: saleMint.publicKey,
+        user: user.publicKey,
+        vesting,
+        vestingToken,
+      }).instruction()
+    ])
+      .signers([user])
+      .rpc();
+
+    let vestingAccount = await program.account.vesting.fetch(vesting);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(2_000_000);
+    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(1_000_000);
+    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(1_000_000);
+    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(2_000_000);
+
+    // executeSale for sale2
+    await expect(program.methods.executeSale(new BN(1_000_000)).accounts({
+      sale: sale2.publicKey,
+      user: user.publicKey,
+      userSaleToken,
+      saleMint: saleMint.publicKey,
+      payment: payment.publicKey,
+      vesting,
+      vestingToken,
+    })
+      .signers([user])
+      .rpc()).to.be.rejected;
+  });
 });

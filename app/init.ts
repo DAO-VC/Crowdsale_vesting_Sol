@@ -32,10 +32,22 @@ async function main() {
   const paymentMinAmount = new BN(1_000_000_000); // min amount 1 SOL
   const advanceFraction = 2000; // 20%
   const releaseSchedule = [
-    new BN(Math.floor(new Date("2022-10-01T00:00:00Z").getTime() / 1000)), // 1 oct 2022
-    new BN(Math.floor(new Date("2022-11-01T00:00:00Z").getTime() / 1000)), // 1 nov 2022
-    new BN(Math.floor(new Date("2022-12-01T00:00:00Z").getTime() / 1000)), // 1 dec 2022
-    new BN(Math.floor(new Date("2023-01-01T00:00:00Z").getTime() / 1000)), // 1 jan 2023
+    {
+      releaseTime: new BN(Math.floor(new Date("2022-10-01T00:00:00Z").getTime() / 1000)), // 1 oct 2022
+      fraction: 2000,
+    },
+    {
+      releaseTime: new BN(Math.floor(new Date("2022-11-01T00:00:00Z").getTime() / 1000)), // 1 nov 2022
+      fraction: 2000,
+    },
+    {
+      releaseTime: new BN(Math.floor(new Date("2022-12-01T00:00:00Z").getTime() / 1000)), // 1 dec 2022
+      fraction: 2000,
+    },
+    {
+      releaseTime: new BN(Math.floor(new Date("2023-01-01T00:00:00Z").getTime() / 1000)), // 1 jan 2023
+      fraction: 2000,
+    },
   ];
 
   const pubkeys = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, releaseSchedule)
