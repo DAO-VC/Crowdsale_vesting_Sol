@@ -475,7 +475,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const authority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -510,7 +510,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const authority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -534,7 +534,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const authority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -572,7 +572,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const invalidAuthority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false,  [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -605,7 +605,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const authority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false,  [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -653,7 +653,7 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 2000, releaseSchedule)
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 2000, false, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -687,7 +687,7 @@ describe("crowdsale-vesting", () => {
 
   it("Should NOT init vesting account for sales without vesting", async () => {
     const sale = Keypair.generate();
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false,  [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -731,7 +731,7 @@ describe("crowdsale-vesting", () => {
     await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
 
     // init, fund and resume
-    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 2000, releaseSchedule)
+    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 2000, false, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -811,7 +811,7 @@ describe("crowdsale-vesting", () => {
     await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
 
     // init, fund and resume
-    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 10000, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 10000, false, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -875,7 +875,7 @@ describe("crowdsale-vesting", () => {
     await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
 
     // init, fund and resume
-    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, releaseSchedule)
+    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, false,  releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -967,7 +967,7 @@ describe("crowdsale-vesting", () => {
     await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
 
     // init, fund and resume
-    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, releaseSchedule)
+    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, false, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -1030,7 +1030,7 @@ describe("crowdsale-vesting", () => {
     await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
 
     // init, fund and resume
-    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, releaseSchedule)
+    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, false, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -1126,7 +1126,7 @@ describe("crowdsale-vesting", () => {
     await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
 
     // Init sale1
-    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, releaseSchedule1)
+    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, false, releaseSchedule1)
       .accounts({
         sale: sale1.publicKey,
         authority: authority.publicKey,
@@ -1160,7 +1160,7 @@ describe("crowdsale-vesting", () => {
     ];
 
     // init sale2
-    await program.methods.initialize(new BN(4), new BN(1), new BN(1_000_000), 2000, releaseSchedule2)
+    await program.methods.initialize(new BN(4), new BN(1), new BN(1_000_000), 2000, false,  releaseSchedule2)
       .accounts({
         sale: sale2.publicKey,
         authority: authority.publicKey,
@@ -1259,7 +1259,7 @@ describe("crowdsale-vesting", () => {
     await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
 
     // Init sale1
-    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, releaseSchedule1)
+    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, false, releaseSchedule1)
       .accounts({
         sale: sale1.publicKey,
         authority: authority.publicKey,
@@ -1297,7 +1297,7 @@ describe("crowdsale-vesting", () => {
     ];
 
     // init sale2
-    await program.methods.initialize(new BN(4), new BN(1), new BN(1_000_000), 2000, releaseSchedule2)
+    await program.methods.initialize(new BN(4), new BN(1), new BN(1_000_000), 2000, false,  releaseSchedule2)
       .accounts({
         sale: sale2.publicKey,
         authority: authority.publicKey,

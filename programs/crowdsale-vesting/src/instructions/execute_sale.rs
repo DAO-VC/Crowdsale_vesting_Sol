@@ -77,7 +77,7 @@ pub struct ExecuteSale<'info> {
 pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()> {
     let sale = &ctx.accounts.sale;
     let mut  token_purchase_amount: u64 =0;
-    if !sale.no_sale_just_vesting { //sale.price_numerator == 0 means not sale just vesting
+    if !sale.no_sale_just_vesting { 
         token_purchase_amount =
         payment_amount  * sale.price_numerator  / sale.price_denominator ;
      
