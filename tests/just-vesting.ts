@@ -758,17 +758,17 @@ describe("no crowdsale just vesting", () => {
       .signers([sale, authority]).rpc();
 
     const [vesting, _nonce] = await PublicKey.findProgramAddress(
-      [authority.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
+      [/* user */authority.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
       program.programId
     );
     const vestingToken = await getATA(vesting, saleMint.publicKey);
 
-    const userSaleToken = await getATA(authority.publicKey, saleMint.publicKey)
+    const userSaleToken = await getATA(/* user */authority.publicKey, saleMint.publicKey)
 
     // execute sale for 0.001 SOL and will receive 20% from 0.002 tokens, remaining 80% will in vestingToken
     await program.methods.executeSale(new BN(1_000_000)).accounts({
       sale: sale.publicKey,
-      user: authority.publicKey,
+      user: /* user */ authority.publicKey,
       userSaleToken,
       saleMint: saleMint.publicKey,
       payment: payment.publicKey,
@@ -793,7 +793,7 @@ describe("no crowdsale just vesting", () => {
       vesting,
       vestingToken,
       saleMint: saleMint.publicKey,
-      user: authority.publicKey,
+      user: /* user */authority.publicKey,
       userToken: userSaleToken,
     }).signers([user]).rpc();
 
@@ -803,7 +803,7 @@ describe("no crowdsale just vesting", () => {
       vesting,
       vestingToken,
       saleMint: saleMint.publicKey,
-      user: authority.publicKey,
+      user: /* user */ authority.publicKey,
       userToken: userSaleToken,
     }).signers([user]).rpc()).to.be.rejected;
   });
