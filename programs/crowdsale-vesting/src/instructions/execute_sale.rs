@@ -13,7 +13,7 @@ pub struct ExecuteSale<'info> {
         has_one = payment,
         has_one = sale_mint,
         constraint = sale.is_active == true,
-        constraint = sale.price_numerator > 0 && payment_amount >= sale.payment_min_amount  @ SaleError::AmountMinimum,
+        constraint = payment_amount >= sale.payment_min_amount  @ SaleError::AmountMinimum, 
     )]
     pub sale: Box<Account<'info, Sale>>,
 

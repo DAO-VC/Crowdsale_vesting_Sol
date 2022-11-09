@@ -63,6 +63,9 @@ pub fn initialize(
         check_release_schedule(advance_fraction, &release_schedule),
         SaleError::FractionsAreNot100Percents
     );
+    if no_sale_just_vesting { 
+        require_eq!(payment_min_amount, 0, SaleError:: NoSaleJustVesting);
+    }
 
     let sale = &mut ctx.accounts.sale;
 
