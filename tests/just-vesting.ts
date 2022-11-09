@@ -875,7 +875,7 @@ describe("no crowdsale just vesting", () => {
       }
     ];
 
-    // const user = Keypair.generate();
+    const authority = Keypair.generate();
     await provider.connection.requestAirdrop(authority.publicKey, LAMPORTS_PER_SOL);
 
     // init, fund and resume
@@ -909,7 +909,7 @@ describe("no crowdsale just vesting", () => {
 
     const userSaleToken = await getATA(authority.publicKey, saleMint.publicKey)
 
-    await program.methods.executeSale(new BN(1_000)).accounts({
+    await program.methods.executeSale(new BN(1_000_000)).accounts({
       sale: sale.publicKey,
       user: authority.publicKey,
       userSaleToken,
@@ -940,7 +940,7 @@ describe("no crowdsale just vesting", () => {
       userToken: userSaleToken,
     }).signers([authority]).rpc();
 
-    expect(await tokenBalance(splProgram, userSaleToken)).to.be.equal(1_000_000);
+    expect(await tokenBalance(splProgram, userSaleToken)).to.be.equal(500000);
 
     await expect(program.methods.claim().accounts({
       vesting,
@@ -967,7 +967,7 @@ describe("no crowdsale just vesting", () => {
       }
     ];
 
-    const user = Keypair.generate();
+    const authority =  Keypair.generate();
     await provider.connection.requestAirdrop(authority.publicKey, LAMPORTS_PER_SOL);
 
     // init, fund and resume
@@ -1030,11 +1030,11 @@ describe("no crowdsale just vesting", () => {
       }
     ];
 
-    const user = Keypair.generate();
+    const authority =  Keypair.generate();
     await provider.connection.requestAirdrop(authority.publicKey, LAMPORTS_PER_SOL);
 
     // init, fund and resume
-    await program.methods.initialize(new BN(2), new BN(1), new BN(0), 0, true, releaseSchedule)
+    await program.methods.initialize(new BN(1), new BN(1), new BN(0), 0, true, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -1085,10 +1085,10 @@ describe("no crowdsale just vesting", () => {
       .rpc();
 
     let vestingAccount = await program.account.vesting.fetch(vesting);
-    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(2_000_000);
-    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(1_000_000);
-    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(1_000_000);
-    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(2_000_000);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(1_000_000);
+    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(500_000);
+    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(500_000);
+    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(1_000_000);
 
     await program.methods.executeSale(new BN(1_000_000)).accounts({
       sale: sale.publicKey,
@@ -1103,10 +1103,10 @@ describe("no crowdsale just vesting", () => {
       .rpc();
 
     vestingAccount = await program.account.vesting.fetch(vesting);
-    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(4_000_000);
-    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(2_000_000);
-    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(2_000_000);
-    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(4_000_000);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(2_000_000);
+    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(1_000_000);
+    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(1_000_000);
+    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(2_000_000);
   });
 
   it("Should executeSale multiple times for different sales with same schedule", async () => {
@@ -1126,11 +1126,11 @@ describe("no crowdsale just vesting", () => {
       }
     ];
 
-    const user = Keypair.generate();
+    const authority =  Keypair.generate();
     await provider.connection.requestAirdrop(authority.publicKey, LAMPORTS_PER_SOL);
 
     // Init sale1
-    await program.methods.initialize(new BN(2), new BN(1), new BN(0), 0, true, releaseSchedule1)
+    await program.methods.initialize(new BN(1), new BN(1), new BN(0), 0, true, releaseSchedule1)
       .accounts({
         sale: sale1.publicKey,
         authority: authority.publicKey,
@@ -1164,7 +1164,7 @@ describe("no crowdsale just vesting", () => {
     ];
 
     // init sale2
-    await program.methods.initialize(new BN(4), new BN(1), new BN(0), 2000, true, releaseSchedule2)
+    await program.methods.initialize(new BN(1), new BN(1), new BN(0), 2000, true, releaseSchedule2)
       .accounts({
         sale: sale2.publicKey,
         authority: authority.publicKey,
@@ -1217,10 +1217,10 @@ describe("no crowdsale just vesting", () => {
       .rpc();
 
     let vestingAccount = await program.account.vesting.fetch(vesting);
-    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(2_000_000);
-    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(1_000_000);
-    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(1_000_000);
-    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(2_000_000);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(1_000_000);
+    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(500_000);
+    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(500_000);
+    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(1_000_000);
 
     // executeSale for sale2
     await program.methods.executeSale(new BN(1_000_000)).accounts({
@@ -1236,10 +1236,10 @@ describe("no crowdsale just vesting", () => {
       .rpc();
 
     vestingAccount = await program.account.vesting.fetch(vesting);
-    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(5_200_000);
-    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(2_600_000);
-    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(2_600_000);
-    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(5_200_000);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(1_800_000);
+    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(900_000);
+    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(900_000);
+    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(1_800_000);
   });
 
   it("Should NOT executeSale multiple times for different sales with different schedule", async () => {
@@ -1259,7 +1259,7 @@ describe("no crowdsale just vesting", () => {
       }
     ];
 
-    const user = Keypair.generate();
+    const authority =  Keypair.generate();
     await provider.connection.requestAirdrop(authority.publicKey, LAMPORTS_PER_SOL);
 
     // Init sale1
@@ -1354,10 +1354,10 @@ describe("no crowdsale just vesting", () => {
       .rpc();
 
     let vestingAccount = await program.account.vesting.fetch(vesting);
-    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(2_000_000);
-    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(1_000_000);
-    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(1_000_000);
-    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(2_000_000);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(1_000_000);
+    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(500_000);
+    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(500_000);
+    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(1_000_000);
 
     // executeSale for sale2
     await expect(program.methods.executeSale(new BN(1_000_000)).accounts({
