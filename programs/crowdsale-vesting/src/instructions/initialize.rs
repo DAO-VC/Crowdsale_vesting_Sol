@@ -4,7 +4,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(Accounts)]
-#[instruction(price_numerator: u64, price_denominator: u64, payment_min_amount: u64, advance_fraction: u16, release_schedule: Vec<ReleaseSchedule>)]
+#[instruction(price_numerator: u64, price_denominator: u64, payment_min_amount: u64, advance_fraction: u16, no_sale_just_vesting:bool, release_schedule: Vec<ReleaseSchedule>)]
 pub struct Initialize<'info> {
     #[account(
         init,
@@ -54,6 +54,7 @@ pub fn initialize(
     price_denominator: u64,
     payment_min_amount: u64,
     advance_fraction: u16,
+    no_sale_just_vesting:  bool,
     release_schedule: Vec<ReleaseSchedule>,
 ) -> Result<()> {
     require_neq!(price_numerator, 0, SaleError::ZeroPrice);
@@ -62,6 +63,9 @@ pub fn initialize(
         check_release_schedule(advance_fraction, &release_schedule),
         SaleError::FractionsAreNot100Percents
     );
+    if no_sale_just_vesting { 
+        require_eq!(payment_min_amount, 0, SaleError:: NoSaleJustVesting);
+    }
 
     let sale = &mut ctx.accounts.sale;
 
@@ -71,6 +75,7 @@ pub fn initialize(
     sale.price_denominator = price_denominator;
     sale.payment_min_amount = payment_min_amount;
     sale.advance_fraction = advance_fraction;
+    sale.no_sale_just_vesting = no_sale_just_vesting;
     sale.release_schedule = release_schedule;
 
     sale.signer_bump = *ctx

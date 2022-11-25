@@ -12,7 +12,7 @@ import {creatMintIfRequired, getATA, getCurrentBlockTime, mintToATA, tokenBalanc
 
 chai.use(chaiAsPromised);
 
-describe("crowdsale-vesting", () => {
+describe("no crowdsale just vesting", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
@@ -24,6 +24,7 @@ describe("crowdsale-vesting", () => {
   const authority = Keypair.generate();
   const saleMint = Keypair.generate();
   const payment = Keypair.generate();
+
   before(async () => {
     await creatMintIfRequired(splProgram, saleMint, wallet);
     await mintToATA(splProgram, wallet, new BN(100_000_000_000), saleMint.publicKey, wallet);
@@ -38,9 +39,9 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const priceNumerator = new BN(2);
     const priceDenominator = new BN(1);
-    const paymentMinAmount = new BN(LAMPORTS_PER_SOL); // min amount 1 SOL
+    const paymentMinAmount = new BN(0); // min amount 1 SOL
     const advanceFraction = 2000; // 20%
-    const isOnlyVesting = false;
+    const isOnlyVesting = true;
     const releaseSchedule = [
       {
         releaseTime: new BN(Math.floor(new Date("2022-12-01T00:00:00Z").getTime() / 1000)), // 1 dec 2022
@@ -51,8 +52,8 @@ describe("crowdsale-vesting", () => {
         fraction: 4000,
       }
     ];
-    
-    const pubkeys = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, isOnlyVesting, releaseSchedule)
+  
+    const pubkeys = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction,isOnlyVesting, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -60,6 +61,7 @@ describe("crowdsale-vesting", () => {
         payment: payment.publicKey,
         payer: wallet,
       }).pubkeys();
+
     const tx = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, isOnlyVesting, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
@@ -87,7 +89,9 @@ describe("crowdsale-vesting", () => {
   it("Should initialize sale without vesting", async () => {
     const sale = Keypair.generate();
 
-    const pubkeys = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
+    const isOnlyVesting = true;
+ 
+    const pubkeys = await program.methods.initialize(new BN(2), new BN(1), new BN(0), 10000, isOnlyVesting, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -96,7 +100,7 @@ describe("crowdsale-vesting", () => {
         payer: wallet,
       }).pubkeys();
 
-    const tx = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
+    const tx = await program.methods.initialize(new BN(2), new BN(1), new BN(0),10000, isOnlyVesting, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -110,7 +114,7 @@ describe("crowdsale-vesting", () => {
     expect(saleAccount.isActive).to.be.false;
     expect(saleAccount.priceNumerator.toNumber()).to.be.equal(2);
     expect(saleAccount.priceDenominator.toNumber()).to.be.equal(1);
-    expect(saleAccount.paymentMinAmount.toNumber()).to.be.equal(LAMPORTS_PER_SOL);
+    expect(saleAccount.paymentMinAmount.toNumber()).to.be.equal(0);
     expect(saleAccount.advanceFraction).to.be.equal(10000);
     expect(saleAccount.releaseSchedule.length).to.be.equal(0);
     expect(saleAccount.payment).to.be.deep.equal(payment.publicKey);
@@ -130,7 +134,7 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    const pubkeys = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 0, false, releaseSchedule)
+    const pubkeys = await program.methods.initialize(new BN(2), new BN(1), new BN(0), 0, true,releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -139,7 +143,7 @@ describe("crowdsale-vesting", () => {
         payer: wallet,
       }).pubkeys();
 
-    const tx = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 0, false, releaseSchedule)
+    const tx = await program.methods.initialize(new BN(2), new BN(1), new BN(0), 0, true,releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -153,7 +157,7 @@ describe("crowdsale-vesting", () => {
     expect(saleAccount.isActive).to.be.false;
     expect(saleAccount.priceNumerator.toNumber()).to.be.equal(2);
     expect(saleAccount.priceDenominator.toNumber()).to.be.equal(1);
-    expect(saleAccount.paymentMinAmount.toNumber()).to.be.equal(LAMPORTS_PER_SOL);
+    expect(saleAccount.paymentMinAmount.toNumber()).to.be.equal(0);
     expect(saleAccount.advanceFraction).to.be.equal(0);
     expect(saleAccount.releaseSchedule.length).to.be.equal(2);
     expect(saleAccount.payment).to.be.deep.equal(payment.publicKey);
@@ -173,7 +177,7 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    const pubkeys = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false, releaseSchedule)
+    const pubkeys = await program.methods.initialize(new BN(2), new BN(1), new BN(0), 10000, true, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -182,7 +186,7 @@ describe("crowdsale-vesting", () => {
         payer: wallet,
       }).pubkeys();
 
-    const tx = await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false, releaseSchedule)
+    const tx = await program.methods.initialize(new BN(2), new BN(1), new BN(0), 10000, true,releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -196,7 +200,7 @@ describe("crowdsale-vesting", () => {
     expect(saleAccount.isActive).to.be.false;
     expect(saleAccount.priceNumerator.toNumber()).to.be.equal(2);
     expect(saleAccount.priceDenominator.toNumber()).to.be.equal(1);
-    expect(saleAccount.paymentMinAmount.toNumber()).to.be.equal(LAMPORTS_PER_SOL);
+    expect(saleAccount.paymentMinAmount.toNumber()).to.be.equal(0);
     expect(saleAccount.advanceFraction).to.be.equal(10000);
     expect(saleAccount.releaseSchedule.length).to.be.equal(2);
     expect(saleAccount.payment).to.be.deep.equal(payment.publicKey);
@@ -216,7 +220,7 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    await expect(program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10001, false, releaseSchedule)
+    await expect(program.methods.initialize(new BN(2), new BN(1), new BN(0), 10001, true, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -240,7 +244,7 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    await expect(program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 2000, false, releaseSchedule)
+    await expect(program.methods.initialize(new BN(2), new BN(1), new BN(0), 2000, true, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -264,7 +268,7 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    await expect(program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 1990, false, releaseSchedule)
+    await expect(program.methods.initialize(new BN(2), new BN(1), new BN(0), 1990, true, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -277,7 +281,7 @@ describe("crowdsale-vesting", () => {
   it("Should NOT initialize sale with price == 0", async () => {
     const sale = Keypair.generate();
 
-    await expect(program.methods.initialize(new BN(0), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
+    await expect(program.methods.initialize(new BN(0), new BN(1), new BN(0),10000, true, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -286,7 +290,7 @@ describe("crowdsale-vesting", () => {
         payer: wallet,
       }).signers([sale]).rpc()).to.be.rejectedWith("ZeroPrice");
 
-    await expect(program.methods.initialize(new BN(2), new BN(0), new BN(LAMPORTS_PER_SOL),10000, false, [])
+    await expect(program.methods.initialize(new BN(2), new BN(0), new BN(0),10000, true, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -300,7 +304,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const newAuthority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0),10000, true, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -328,7 +332,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const newAuthority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0),10000, true, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -349,7 +353,7 @@ describe("crowdsale-vesting", () => {
   it("Should pause and resume with right authority", async () => {
     const sale = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0),10000, true, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -387,7 +391,7 @@ describe("crowdsale-vesting", () => {
   it("Should NOT pause or resume already paused or active sale", async () => {
     const sale = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0),10000, true, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -431,7 +435,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const invalidAuthority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL),10000, false, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0),10000, true, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -475,7 +479,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const authority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0), 10000, true, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -510,7 +514,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const authority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0),  10000, true, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -534,7 +538,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const authority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false, [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0),10000, true, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -572,7 +576,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const invalidAuthority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false,  [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0),10000, true, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -605,7 +609,7 @@ describe("crowdsale-vesting", () => {
     const sale = Keypair.generate();
     const authority = Keypair.generate();
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false,  [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0),10000, true, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -653,7 +657,7 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 2000, false, releaseSchedule)
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0), 2000, true, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -687,7 +691,7 @@ describe("crowdsale-vesting", () => {
 
   it("Should NOT init vesting account for sales without vesting", async () => {
     const sale = Keypair.generate();
-    await program.methods.initialize(new BN(2), new BN(1), new BN(LAMPORTS_PER_SOL), 10000, false,  [])
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0),10000, true, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -727,11 +731,11 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    const user = Keypair.generate();
-    await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
+    //const user = Keypair.generate();
+    await provider.connection.requestAirdrop(authority.publicKey, LAMPORTS_PER_SOL);
 
     // init, fund and resume
-    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 2000, false, releaseSchedule)
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0), 2000, true, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -754,17 +758,17 @@ describe("crowdsale-vesting", () => {
       .signers([sale, authority]).rpc();
 
     const [vesting, _nonce] = await PublicKey.findProgramAddress(
-      [user.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
+      [/* user */authority.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
       program.programId
     );
     const vestingToken = await getATA(vesting, saleMint.publicKey);
 
-    const userSaleToken = await getATA(user.publicKey, saleMint.publicKey)
+    const userSaleToken = await getATA(/* user */authority.publicKey, saleMint.publicKey)
 
     // execute sale for 0.001 SOL and will receive 20% from 0.002 tokens, remaining 80% will in vestingToken
-    await program.methods.executeSale(new BN(1_000_000)).accounts({
+    await program.methods.executeSale(new BN(1_000)).accounts({
       sale: sale.publicKey,
-      user: user.publicKey,
+      user: /* user */ authority.publicKey,
       userSaleToken,
       saleMint: saleMint.publicKey,
       payment: payment.publicKey,
@@ -774,44 +778,44 @@ describe("crowdsale-vesting", () => {
       await program.methods.initVesting().accounts({
         sale: sale.publicKey,
         saleMint: saleMint.publicKey,
-        user: user.publicKey,
+        user: authority.publicKey,
         vesting,
         vestingToken,
       }).instruction()
     ])
-      .signers([user])
+      .signers([authority])
       .rpc();
 
     // 0.001 SOL / 0.5 token per SOL * 20% = 0.0004 tokens
-    expect(await tokenBalance(splProgram, userSaleToken)).to.be.equal(400_000);
+    // expect(await tokenBalance(splProgram, userSaleToken)).to.be.equal(400_000);
 
     await program.methods.claim().accounts({
       vesting,
       vestingToken,
       saleMint: saleMint.publicKey,
-      user: user.publicKey,
+      user: authority .publicKey,
       userToken: userSaleToken,
-    }).signers([user]).rpc();
+    }).signers([authority]).rpc();
 
-    expect(await tokenBalance(splProgram, userSaleToken)).to.be.equal(1_200_000);
+    expect(await tokenBalance(splProgram, userSaleToken)).to.be.equal(600);
 
     await expect(program.methods.claim().accounts({
       vesting,
       vestingToken,
       saleMint: saleMint.publicKey,
-      user: user.publicKey,
+      user: /* user */ authority.publicKey,
       userToken: userSaleToken,
-    }).signers([user]).rpc()).to.be.rejected;
+    }).signers([authority]).rpc()).to.be.rejected;
   });
 
-  it("Should init sale with only advance, fund, executeSale and claim", async () => {
+/*   it("Should init sale with only advance, fund, executeSale and claim", async () => {
     const sale = Keypair.generate();
 
     const user = Keypair.generate();
     await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
 
     // init, fund and resume
-    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 10000, false, [])
+     await program.methods.initialize(new BN(2), new BN(1), new BN(0), 10000, true, [])
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -853,7 +857,7 @@ describe("crowdsale-vesting", () => {
       .rpc();
 
     expect(await tokenBalance(splProgram, userSaleToken)).to.be.equal(2_000_000);
-  });
+  }); */
 
   it("Should init sale with only vesting, fund, executeSale and claim", async () => {
     const sale = Keypair.generate();
@@ -871,11 +875,11 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    const user = Keypair.generate();
-    await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
+    const authority = Keypair.generate();
+    await provider.connection.requestAirdrop(authority.publicKey, LAMPORTS_PER_SOL);
 
     // init, fund and resume
-    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, false,  releaseSchedule)
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0), 0, true, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -898,16 +902,16 @@ describe("crowdsale-vesting", () => {
       .signers([sale, authority]).rpc();
 
     const [vesting, _nonce] = await PublicKey.findProgramAddress(
-      [user.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
+      [authority.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
       program.programId
     );
     const vestingToken = await getATA(vesting, saleMint.publicKey);
 
-    const userSaleToken = await getATA(user.publicKey, saleMint.publicKey)
+    const userSaleToken = await getATA(authority.publicKey, saleMint.publicKey)
 
     await program.methods.executeSale(new BN(1_000_000)).accounts({
       sale: sale.publicKey,
-      user: user.publicKey,
+      user: authority.publicKey,
       userSaleToken,
       saleMint: saleMint.publicKey,
       payment: payment.publicKey,
@@ -917,12 +921,12 @@ describe("crowdsale-vesting", () => {
       await program.methods.initVesting().accounts({
         sale: sale.publicKey,
         saleMint: saleMint.publicKey,
-        user: user.publicKey,
+        user: authority.publicKey,
         vesting,
         vestingToken,
       }).instruction()
     ])
-      .signers([user])
+      .signers([authority])
       .rpc();
 
     // 0.001 SOL / 0.5 token per SOL * 20% = 0.0004 tokens
@@ -932,19 +936,19 @@ describe("crowdsale-vesting", () => {
       vesting,
       vestingToken,
       saleMint: saleMint.publicKey,
-      user: user.publicKey,
+      user: authority.publicKey,
       userToken: userSaleToken,
-    }).signers([user]).rpc();
+    }).signers([authority]).rpc();
 
-    expect(await tokenBalance(splProgram, userSaleToken)).to.be.equal(1_000_000);
+    expect(await tokenBalance(splProgram, userSaleToken)).to.be.equal(500000);
 
     await expect(program.methods.claim().accounts({
       vesting,
       vestingToken,
       saleMint: saleMint.publicKey,
-      user: user.publicKey,
+      user: authority.publicKey,
       userToken: userSaleToken,
-    }).signers([user]).rpc()).to.be.rejected;
+    }).signers([authority]).rpc()).to.be.rejected;
   });
 
   it("Should NOT executeSale without inited vesting", async () => {
@@ -963,11 +967,11 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    const user = Keypair.generate();
-    await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
+    const authority =  Keypair.generate();
+    await provider.connection.requestAirdrop(authority.publicKey, LAMPORTS_PER_SOL);
 
     // init, fund and resume
-    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, false, releaseSchedule)
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0), 0, true, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -990,23 +994,23 @@ describe("crowdsale-vesting", () => {
       .signers([sale, authority]).rpc();
 
     const [vesting, _nonce] = await PublicKey.findProgramAddress(
-      [user.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
+      [authority.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
       program.programId
     );
     const vestingToken = await getATA(vesting, saleMint.publicKey);
 
-    const userSaleToken = await getATA(user.publicKey, saleMint.publicKey)
+    const userSaleToken = await getATA(authority.publicKey, saleMint.publicKey)
 
     await expect(program.methods.executeSale(new BN(1_000_000)).accounts({
       sale: sale.publicKey,
-      user: user.publicKey,
+      user: authority.publicKey,
       userSaleToken,
       saleMint: saleMint.publicKey,
       payment: payment.publicKey,
       vesting,
       vestingToken,
     })
-      .signers([user])
+      .signers([authority])
       .rpc()).to.be.rejected;
   });
 
@@ -1026,11 +1030,11 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    const user = Keypair.generate();
-    await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
+    const authority =  Keypair.generate();
+    await provider.connection.requestAirdrop(authority.publicKey, LAMPORTS_PER_SOL);
 
     // init, fund and resume
-    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, false, releaseSchedule)
+    await program.methods.initialize(new BN(1), new BN(1), new BN(0), 0, true, releaseSchedule)
       .accounts({
         sale: sale.publicKey,
         authority: authority.publicKey,
@@ -1053,16 +1057,16 @@ describe("crowdsale-vesting", () => {
       .signers([sale, authority]).rpc();
 
     const [vesting, _nonce] = await PublicKey.findProgramAddress(
-      [user.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
+      [authority.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
       program.programId
     );
     const vestingToken = await getATA(vesting, saleMint.publicKey);
 
-    const userSaleToken = await getATA(user.publicKey, saleMint.publicKey)
+    const userSaleToken = await getATA(authority.publicKey, saleMint.publicKey)
 
     await program.methods.executeSale(new BN(1_000_000)).accounts({
       sale: sale.publicKey,
-      user: user.publicKey,
+      user: authority.publicKey,
       userSaleToken,
       saleMint: saleMint.publicKey,
       payment: payment.publicKey,
@@ -1072,37 +1076,37 @@ describe("crowdsale-vesting", () => {
       await program.methods.initVesting().accounts({
         sale: sale.publicKey,
         saleMint: saleMint.publicKey,
-        user: user.publicKey,
+        user: authority.publicKey,
         vesting,
         vestingToken,
       }).instruction()
     ])
-      .signers([user])
+      .signers([authority])
       .rpc();
 
     let vestingAccount = await program.account.vesting.fetch(vesting);
-    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(2_000_000);
-    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(1_000_000);
-    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(1_000_000);
-    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(2_000_000);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(1_000_000);
+    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(500_000);
+    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(500_000);
+    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(1_000_000);
 
     await program.methods.executeSale(new BN(1_000_000)).accounts({
       sale: sale.publicKey,
-      user: user.publicKey,
+      user: authority.publicKey,
       userSaleToken,
       saleMint: saleMint.publicKey,
       payment: payment.publicKey,
       vesting,
       vestingToken,
     })
-      .signers([user])
+      .signers([authority])
       .rpc();
 
     vestingAccount = await program.account.vesting.fetch(vesting);
-    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(4_000_000);
-    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(2_000_000);
-    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(2_000_000);
-    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(4_000_000);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(2_000_000);
+    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(1_000_000);
+    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(1_000_000);
+    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(2_000_000);
   });
 
   it("Should executeSale multiple times for different sales with same schedule", async () => {
@@ -1122,11 +1126,11 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    const user = Keypair.generate();
-    await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
+    const authority =  Keypair.generate();
+    await provider.connection.requestAirdrop(authority.publicKey, LAMPORTS_PER_SOL);
 
     // Init sale1
-    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, false, releaseSchedule1)
+    await program.methods.initialize(new BN(1), new BN(1), new BN(0), 0, true, releaseSchedule1)
       .accounts({
         sale: sale1.publicKey,
         authority: authority.publicKey,
@@ -1160,7 +1164,7 @@ describe("crowdsale-vesting", () => {
     ];
 
     // init sale2
-    await program.methods.initialize(new BN(4), new BN(1), new BN(1_000_000), 2000, false,  releaseSchedule2)
+    await program.methods.initialize(new BN(1), new BN(1), new BN(0), 2000, true, releaseSchedule2)
       .accounts({
         sale: sale2.publicKey,
         authority: authority.publicKey,
@@ -1184,17 +1188,17 @@ describe("crowdsale-vesting", () => {
 
 
     const [vesting, _nonce] = await PublicKey.findProgramAddress(
-      [user.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
+      [authority.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
       program.programId
     );
     const vestingToken = await getATA(vesting, saleMint.publicKey);
 
-    const userSaleToken = await getATA(user.publicKey, saleMint.publicKey)
+    const userSaleToken = await getATA(authority.publicKey, saleMint.publicKey)
 
     // executeSale for sale1
     await program.methods.executeSale(new BN(1_000_000)).accounts({
       sale: sale1.publicKey,
-      user: user.publicKey,
+      user: authority.publicKey,
       userSaleToken,
       saleMint: saleMint.publicKey,
       payment: payment.publicKey,
@@ -1204,38 +1208,38 @@ describe("crowdsale-vesting", () => {
       await program.methods.initVesting().accounts({
         sale: sale1.publicKey,
         saleMint: saleMint.publicKey,
-        user: user.publicKey,
+        user: authority.publicKey,
         vesting,
         vestingToken,
       }).instruction()
     ])
-      .signers([user])
+      .signers([authority])
       .rpc();
 
     let vestingAccount = await program.account.vesting.fetch(vesting);
-    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(2_000_000);
-    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(1_000_000);
-    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(1_000_000);
-    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(2_000_000);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(1_000_000);
+    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(500_000);
+    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(500_000);
+    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(1_000_000);
 
     // executeSale for sale2
     await program.methods.executeSale(new BN(1_000_000)).accounts({
       sale: sale2.publicKey,
-      user: user.publicKey,
+      user: authority.publicKey,
       userSaleToken,
       saleMint: saleMint.publicKey,
       payment: payment.publicKey,
       vesting,
       vestingToken,
     })
-      .signers([user])
+      .signers([authority])
       .rpc();
 
     vestingAccount = await program.account.vesting.fetch(vesting);
-    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(5_200_000);
-    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(2_600_000);
-    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(2_600_000);
-    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(5_200_000);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(1_800_000);
+    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(900_000);
+    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(900_000);
+    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(1_800_000);
   });
 
   it("Should NOT executeSale multiple times for different sales with different schedule", async () => {
@@ -1255,11 +1259,11 @@ describe("crowdsale-vesting", () => {
       }
     ];
 
-    const user = Keypair.generate();
-    await provider.connection.requestAirdrop(user.publicKey, LAMPORTS_PER_SOL);
+    const authority =  Keypair.generate();
+    await provider.connection.requestAirdrop(authority.publicKey, LAMPORTS_PER_SOL);
 
     // Init sale1
-    await program.methods.initialize(new BN(2), new BN(1), new BN(1_000_000), 0, false, releaseSchedule1)
+    await program.methods.initialize(new BN(2), new BN(1), new BN(0), 0, true, releaseSchedule1)
       .accounts({
         sale: sale1.publicKey,
         authority: authority.publicKey,
@@ -1297,7 +1301,7 @@ describe("crowdsale-vesting", () => {
     ];
 
     // init sale2
-    await program.methods.initialize(new BN(4), new BN(1), new BN(1_000_000), 2000, false,  releaseSchedule2)
+    await program.methods.initialize(new BN(4), new BN(1), new BN(0), 2000, true, releaseSchedule2)
       .accounts({
         sale: sale2.publicKey,
         authority: authority.publicKey,
@@ -1321,17 +1325,17 @@ describe("crowdsale-vesting", () => {
 
 
     const [vesting, _nonce] = await PublicKey.findProgramAddress(
-      [user.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
+      [authority.publicKey.toBuffer(), saleMint.publicKey.toBuffer()],
       program.programId
     );
     const vestingToken = await getATA(vesting, saleMint.publicKey);
 
-    const userSaleToken = await getATA(user.publicKey, saleMint.publicKey)
+    const userSaleToken = await getATA(authority.publicKey, saleMint.publicKey)
 
     // executeSale for sale1
     await program.methods.executeSale(new BN(1_000_000)).accounts({
       sale: sale1.publicKey,
-      user: user.publicKey,
+      user: authority.publicKey,
       userSaleToken,
       saleMint: saleMint.publicKey,
       payment: payment.publicKey,
@@ -1341,31 +1345,31 @@ describe("crowdsale-vesting", () => {
       await program.methods.initVesting().accounts({
         sale: sale1.publicKey,
         saleMint: saleMint.publicKey,
-        user: user.publicKey,
+        user: authority.publicKey,
         vesting,
         vestingToken,
       }).instruction()
     ])
-      .signers([user])
+      .signers([authority])
       .rpc();
 
     let vestingAccount = await program.account.vesting.fetch(vesting);
-    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(2_000_000);
-    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(1_000_000);
-    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(1_000_000);
-    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(2_000_000);
+    expect(vestingAccount.totalAmount.toNumber()).to.be.equal(1_000_000);
+    expect(vestingAccount.schedule[0].amount .toNumber()).to.be.equal(500_000);
+    expect(vestingAccount.schedule[1].amount .toNumber()).to.be.equal(500_000);
+    expect(await tokenBalance(splProgram, vestingToken)).to.be.equal(1_000_000);
 
     // executeSale for sale2
     await expect(program.methods.executeSale(new BN(1_000_000)).accounts({
       sale: sale2.publicKey,
-      user: user.publicKey,
+      user: authority.publicKey,
       userSaleToken,
       saleMint: saleMint.publicKey,
       payment: payment.publicKey,
       vesting,
       vestingToken,
     })
-      .signers([user])
+      .signers([authority])
       .rpc()).to.be.rejected;
   });
 });

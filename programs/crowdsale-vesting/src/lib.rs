@@ -19,6 +19,7 @@ pub mod crowdsale_vesting {
         price_denominator: u64,
         payment_min_amount: u64,
         advance_fraction: u16,
+        no_sale_just_vesting:  bool,
         release_schedule: Vec<ReleaseSchedule>,
     ) -> Result<()> {
         instructions::initialize(
@@ -27,6 +28,7 @@ pub mod crowdsale_vesting {
             price_denominator,
             payment_min_amount,
             advance_fraction,
+            no_sale_just_vesting,
             release_schedule,
         )
     }

@@ -13,7 +13,7 @@ pub struct ExecuteSale<'info> {
         has_one = payment,
         has_one = sale_mint,
         constraint = sale.is_active == true,
-        constraint = payment_amount >= sale.payment_min_amount @ SaleError::AmountMinimum,
+        constraint = payment_amount >= sale.payment_min_amount  @ SaleError::AmountMinimum, 
     )]
     pub sale: Box<Account<'info, Sale>>,
 
@@ -76,23 +76,33 @@ pub struct ExecuteSale<'info> {
 
 pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()> {
     let sale = &ctx.accounts.sale;
+    let mut  token_purchase_amount: u64 =0;
+    if !sale.no_sale_just_vesting { 
+        token_purchase_amount =
+        payment_amount  * sale.price_numerator  / sale.price_denominator ;
+     
+        token_purchase_amount =
+            u64::try_from(token_purchase_amount as u64).map_err(|_| error!(SaleError::CalculationOverflow))?;
 
-    let token_purchase_amount =
-        payment_amount as u128 * sale.price_numerator as u128 / sale.price_denominator as u128;
-    let token_purchase_amount =
-        u64::try_from(token_purchase_amount).map_err(|_| error!(SaleError::CalculationOverflow))?;
-
-    // Transfer SOL for tokens to payment address
-    system_program::transfer(
-        CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from: ctx.accounts.user.to_account_info(),
-                to: ctx.accounts.payment.to_account_info(),
-            },
-        ),
-        payment_amount,
-    )?;
+        // Transfer SOL for tokens to payment address
+        system_program::transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                system_program::Transfer {
+                    from: ctx.accounts.user.to_account_info(),
+                    to: ctx.accounts.payment.to_account_info(),
+                },
+            ),
+            payment_amount,
+        )?;
+    } else if sale.no_sale_just_vesting  {
+        require_keys_eq!(
+            sale.authority,
+            ctx.accounts.user.key(),
+            SaleError::NotAuthorityVests
+        );
+        token_purchase_amount = payment_amount;
+    }
 
     // Calculate advance amount and vesting amounts
     let vesting_amounts: Vec<u64> = sale
@@ -101,7 +111,7 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
         .map(|line| (token_purchase_amount as u128 * line.fraction as u128 / 10000) as u64)
         .collect();
     let remaining_total_amount = vesting_amounts.iter().sum::<u64>();
-    let advance_amount = token_purchase_amount - remaining_total_amount;
+    let advance_amount = token_purchase_amount - remaining_total_amount ;
 
     msg!(
         "Advance payment: {}, remaining {}",
@@ -112,7 +122,7 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
     let key = ctx.accounts.sale.key();
     let seeds = [key.as_ref(), &[ctx.accounts.sale.signer_bump]];
 
-    // Transfer advance amount to user
+     // Transfer advance amount to user
     if advance_amount > 0 {
         token::transfer(
             CpiContext::new_with_signer(
@@ -124,9 +134,9 @@ pub fn execute_sale(ctx: Context<ExecuteSale>, payment_amount: u64) -> Result<()
                 },
                 &[&seeds],
             ),
-            advance_amount,
+            advance_amount as u64,
         )?;
-    }
+    } 
 
     if remaining_total_amount > 0 {
         let mut vesting: Account<Vesting> = Account::try_from(&ctx.accounts.vesting)?;

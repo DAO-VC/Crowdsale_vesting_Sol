@@ -10,6 +10,7 @@ pub struct Sale {
     pub payment_min_amount: u64,
 
     pub advance_fraction: u16,
+    pub no_sale_just_vesting:bool,
     pub release_schedule: Vec<ReleaseSchedule>,
 
     pub sale_mint: Pubkey,
@@ -18,6 +19,7 @@ pub struct Sale {
 
     pub signer_bump: u8,
     pub sale_token_bump: u8,
+    
 }
 
 impl Sale {
@@ -29,6 +31,7 @@ impl Sale {
             + 8
             + 2
             + 4
+            + 1
             + release_schedule.len() * std::mem::size_of::<ReleaseSchedule>()
             + 32
             + 32
