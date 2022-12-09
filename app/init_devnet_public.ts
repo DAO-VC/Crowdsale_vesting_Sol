@@ -43,7 +43,7 @@ async function main() {
   const priceDenominator = new BN(1);
   const paymentMinAmount = new BN(100_000_000); // min amount 0.1 SOL
 
-  const pubkeys = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, 10000, [])
+  const pubkeys = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, 10000, false, [])
     .accounts({
       sale: sale.publicKey,
       authority: AUTHORITY,
@@ -52,7 +52,7 @@ async function main() {
       payer: wallet.publicKey,
     }).pubkeys();
 
-  const tx = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, 10000, [])
+  const tx = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, 10000, false, [])
     .accounts({
       sale: sale.publicKey,
       authority: AUTHORITY,
@@ -72,7 +72,7 @@ async function main() {
           authority: AUTHORITY,
         }).instruction()
     ])
-    .signers([sale]).rpc();
+    .signers([sale]).rpc({skipPreflight: true});
 
   console.log("Devnet public sale (without vesting) initialized");
   console.log("Init transaction", tx);

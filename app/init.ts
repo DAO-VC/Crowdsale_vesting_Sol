@@ -50,7 +50,7 @@ async function main() {
     },
   ];
 
-  const pubkeys = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, releaseSchedule)
+  const pubkeys = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, false, releaseSchedule)
     .accounts({
       sale: sale.publicKey,
       authority: AUTHORITY,
@@ -59,7 +59,7 @@ async function main() {
       payer: wallet.publicKey,
     }).pubkeys();
 
-  const tx = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, releaseSchedule)
+  const tx = await program.methods.initialize(priceNumerator, priceDenominator, paymentMinAmount, advanceFraction, false, releaseSchedule)
     .accounts({
       sale: sale.publicKey,
       authority: AUTHORITY,
