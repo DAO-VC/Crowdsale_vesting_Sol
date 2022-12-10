@@ -164,11 +164,53 @@ anchor.setProvider(anchor.AnchorProvider.env());
 main();
 
 async function fetch() {
-  const provider = anchor.getProvider();
+  const vestingProgram = tokenVestingProgram({programId: PROGRAM_ID, provider: anchor.AnchorProvider.env()});
+
+  const vestingPreSeed = new PublicKey("GgrM8TLNmukFZCE3kGBKkLaqtuHeB5vwe62z7CrfvBw7");
+  const pool = "treasury";
+
+  let seeds = (await PublicKey.findProgramAddress(
+    [vestingPreSeed.toBuffer(), anchor.utils.bytes.utf8.encode(pool)],
+    PROGRAM_ID,
+  ))[0].toBytes();
+
+  const [vesting, nonce] = await PublicKey.findProgramAddress(
+    [seeds.slice(0, 31)],
+    PROGRAM_ID,
+  );
+
+  const vestingAccount = await vestingProgram.account.vesting.fetch(vesting);
+  console.log(vestingAccount);
+}
+
+async function unlock() {
   const wallet = anchor.Wallet.local();
   const vestingProgram = tokenVestingProgram({programId: PROGRAM_ID, provider: anchor.AnchorProvider.env()});
 
-  const vesting = new PublicKey("DLhP57Cx2mTFVj78xvQVnq4aC5f3XpemsFRtQUs3RMUW");
-  const vestingAccount = await vestingProgram.account.vesting.fetch(vesting);
-  console.log(vestingAccount);
+  const vestingPreSeed = new PublicKey("GgrM8TLNmukFZCE3kGBKkLaqtuHeB5vwe62z7CrfvBw7");
+  const pool = "treasury";
+
+  let seeds = (await PublicKey.findProgramAddress(
+    [vestingPreSeed.toBuffer(), anchor.utils.bytes.utf8.encode(pool)],
+    PROGRAM_ID,
+  ))[0].toBytes();
+
+  const [vestingAccount, nonce] = await PublicKey.findProgramAddress(
+    [seeds.slice(0, 31)],
+    PROGRAM_ID,
+  );
+
+  seeds = seeds.slice(0, 32);
+  seeds[31] = nonce;
+
+  const vestingTokenAccount = await getATA(vestingAccount, SALE_MINT);
+  const destinationTokenAccount = await getATA(wallet.publicKey, SALE_MINT);
+
+  const tx = await vestingProgram.methods.unlock(Array.from(seeds)).accounts({
+    clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+    vestingAccount,
+    vestingTokenAccount,
+    destinationTokenAccount,
+  }).rpc();
+
 }
