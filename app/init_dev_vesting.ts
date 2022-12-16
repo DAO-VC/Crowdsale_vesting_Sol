@@ -114,10 +114,16 @@ async function main() {
 
   const unlockTimes = await releaseTimes(anchor.getProvider().connection);
 
+  const treasuryUnlockedSeed = await generateSeed(vestingPreSeed, "treasury_unlocked");
+  const treasuryUnlockedAmounts = [
+    5_000_000,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  ];
+  const treasuryUnlockedSchedule = buildSchedule(unlockTimes, treasuryUnlockedAmounts);
+
   const treasurySeed = await generateSeed(vestingPreSeed, "treasury");
   const treasuryAmounts = [
-    5_000_000, 
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     208_333, 208_333, 208_333, 208_333, 208_333, 208_333, 208_333, 208_333, 208_333, 208_333, 208_333,
     208_333, 208_333, 208_333, 208_333, 208_333, 208_333, 208_333, 208_333, 208_333, 208_333, 208_333, 208_333, 208_333,
   ];
@@ -149,6 +155,9 @@ async function main() {
 
   const srcToken = await getATA(anchor.Wallet.local().publicKey, SALE_MINT);
 
+
+  console.log("Treasury Unlocked Vesting - treasury_unlocked");
+  await init_vesting(srcToken, treasuryUnlockedSeed, treasuryUnlockedSchedule);
   console.log("Treasury Vesting - treasury");
   await init_vesting(srcToken, treasurySeed, treasurySchedule);
   console.log("Community Vesting - community");
