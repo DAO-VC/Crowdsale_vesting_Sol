@@ -95,7 +95,7 @@ async function init_vesting(
     .rpc();
 
   console.log("tx: ", tx);
-  console.log("Vesting Seed: ", seeds);
+  console.log("Vesting Seed: ", Buffer.from(seeds).toString("hex"));
   console.log("Vesting Account: ", vesting.toBase58());
   console.log("Destination Account: ", DST_OWNER.toBase58());
   console.log("Destination Token Account: ", dstToken.toBase58());
